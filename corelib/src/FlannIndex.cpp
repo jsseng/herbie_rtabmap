@@ -387,6 +387,7 @@ std::vector<unsigned int> FlannIndex::addPoints(const cv::Mat & features)
 		{
 			UDEBUG("Rebuilding FLANN index: %d -> %d", (int)index->sizeAtBuild(), (int)(index->size()+index->removedCount()));
 			index->buildIndex();
+                        std::cout << "---------------byte - addPoints() - FlannIndex.cpp--------------" << std::endl;
 		}
 		// if no more removed points, the index has been rebuilt
 		indexRebuilt = index->removedCount() == 0 && removedPts>0;
@@ -402,6 +403,7 @@ std::vector<unsigned int> FlannIndex::addPoints(const cv::Mat & features)
 			// Rebuild index if it doubles in size
 			if(rebalancingFactor_ > 1.0f && size_t(float(index->sizeAtBuild()) * rebalancingFactor_) < index->size()+index->removedCount())
 			{
+                                std::cout << "---------------L1 - addPoints() - FlannIndex.cpp--------------" << std::endl;
 				UDEBUG("Rebuilding FLANN index: %d -> %d", (int)index->sizeAtBuild(), (int)(index->size()+index->removedCount()));
 				index->buildIndex();
 			}
@@ -418,6 +420,7 @@ std::vector<unsigned int> FlannIndex::addPoints(const cv::Mat & features)
 			{
 				UDEBUG("Rebuilding FLANN index: %d -> %d", (int)index->sizeAtBuild(), (int)(index->size()+index->removedCount()));
 				index->buildIndex();
+                                std::cout << "---------------L2_simple - addPoints() - FlannIndex.cpp--------------" << std::endl;
 			}
 			// if no more removed points, the index has been rebuilt
 			indexRebuilt = index->removedCount() == 0 && removedPts>0;
@@ -432,6 +435,7 @@ std::vector<unsigned int> FlannIndex::addPoints(const cv::Mat & features)
 			{
 				UDEBUG("Rebuilding FLANN index: %d -> %d", (int)index->sizeAtBuild(), (int)(index->size()+index->removedCount()));
 				index->buildIndex();
+                                std::cout << "---------------L2 - addPoints() - FlannIndex.cpp--------------" << std::endl;
 			}
 			// if no more removed points, the index has been rebuilt
 			indexRebuilt = index->removedCount() == 0 && removedPts>0;

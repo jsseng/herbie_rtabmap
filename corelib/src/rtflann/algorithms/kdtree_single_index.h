@@ -238,6 +238,7 @@ protected:
      */
     void buildIndexImpl()
     {
+        std::cout << "---(buildIndexImpl() - kdtree_single_index.h)---" << std::endl;
         // Create a permutable array of indices to the input vectors.
         vind_.resize(size_);
         for (size_t i = 0; i < size_; i++) {

@@ -37,6 +37,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "rtabmap/core/Parameters.h"
 #include "rtabmap/core/RtabmapEvent.h"
 #include "rtabmap/core/VWDictionary.h"
+#include "rtabmap/core/FlannIndex.h" //JS
 #include <rtabmap/core/EpipolarGeometry.h>
 #include "rtabmap/core/VisualWord.h"
 #include "rtabmap/core/Features2d.h"
@@ -389,10 +390,12 @@ void Memory::loadDataFromDb(bool postInitClosingEvents)
 					_dbDriver->getLastWordId(id);
 					_vwd->setLastWordId(id);
 				}
+				std::cout << "----Running load() 1----" << std::endl;
 			}
 			else
 			{
 				_dbDriver->load(_vwd, false);
+				std::cout << "----Running load() 2----" << std::endl;
 			}
 		}
 		else
@@ -403,6 +406,7 @@ void Memory::loadDataFromDb(bool postInitClosingEvents)
 		}
 		UDEBUG("%d words loaded!", _vwd->getUnusedWordsSize());
 		_vwd->update();
+		get_vwdictionary_info(_vwd); //JS
 		if(postInitClosingEvents) UEventsManager::post(new RtabmapEventInit(uFormat("Loading dictionary, done! (%d words)", (int)_vwd->getUnusedWordsSize())));
 
 		if(postInitClosingEvents) UEventsManager::post(new RtabmapEventInit(std::string("Adding word references...")));
@@ -455,6 +459,23 @@ void Memory::loadDataFromDb(bool postInitClosingEvents)
 
 	UDEBUG("ids start with %d", _idCount+1);
 	UDEBUG("map ids start with %d", _idMapCount);
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+void Memory::get_vwdictionary_info(VWDictionary* test1) {
+	std::cout << "-----number of visual words: " << test1->vw_js->size() << std::endl;
+
+	int num_visual_words = test1->vw_js->size();
+	VisualWord* v;
+	for(std::map<int, VisualWord*>::iterator iter=test1->vw_js->begin(); iter!=test1->vw_js->end(); ++iter)
+	{
+		v = iter->second;
+		// std::cout << v->id() << std::endl;
+	}
+
+	std::cout << test1->flannIndex_js->featuresDim() << std::endl;
+	std::cout << test1->flannIndex_js->memoryUsed() << std::endl;
+	return;
 }
 
 void Memory::close(bool databaseSaved, bool postInitClosingEvents, const std::string & ouputDatabasePath)

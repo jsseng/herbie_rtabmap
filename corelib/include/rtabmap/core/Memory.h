@@ -233,6 +233,9 @@ public:
 	//keypoint stuff
 	const VWDictionary * getVWDictionary() const;
 
+	//JS
+	void get_vwdictionary_info(VWDictionary* test1);
+
 	// RGB-D stuff
 	void getMetricConstraints(
 			const std::set<int> & ids,

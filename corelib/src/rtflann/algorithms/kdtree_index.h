@@ -49,6 +49,9 @@
 #include "rtflann/util/saving.h"
 
 
+using std::cout;
+using std::endl;
+
 namespace rtflann
 {
 
@@ -213,6 +216,7 @@ public:
         assert(points.cols==veclen_);
 
         size_t old_size = size_;
+        //std::cout << "---(addPoints() - kdtree_index.h)  size: " << old_size << "----" << std::endl;
         extendDataset(points);
         
         if (rebuild_threshold>1 && size_at_build_*rebuild_threshold<size_) {
@@ -664,6 +668,7 @@ protected:
      */
     void buildIndexImpl()
     {
+        std::cout << "---(buildIndexImpl() - kdtree_index.h)---" << std::endl;
         // Create a permutable array of indices to the input vectors.
     	std::vector<int> ind(size_);
         for (size_t i = 0; i < size_; ++i) {

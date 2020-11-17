@@ -266,6 +266,7 @@ void VWDictionary::setFixedDictionary(const std::string & dictionaryPath)
 				_incrementalDictionary = false;
 				this->update();
 				UWARN("Loaded %d words!", (int)_visualWords.size());
+				std::cout << "JS----VWDictionary.cpp - setFixedDictionary() - loaded words complete----";
 			}
 		}
 		else if(!_incrementalDictionary)
@@ -467,6 +468,9 @@ cv::Mat VWDictionary::convert32FToBin(const cv::Mat & descriptorsIn, bool byteTo
 
 void VWDictionary::update()
 {
+	vw_js = &_visualWords; //JS
+	dataTree_js = _dataTree;
+	
 	ULOGGER_DEBUG("incremental=%d", _incrementalDictionary?1:0);
 	if(!_incrementalDictionary)
 	{
@@ -561,6 +565,7 @@ void VWDictionary::update()
 					inserted = _mapIdIndex.insert(std::pair<int, int>(w->id(), index));
 					UASSERT(inserted.second);
 				}
+				std::cout << "---(update() VWDictionary.cpp) - inserting words done!---" << std::endl;
 				ULOGGER_DEBUG("Incremental FLANN: Inserting %d words... done!", (int)_notIndexedWords.size());
 			}
 		}
@@ -570,6 +575,8 @@ void VWDictionary::update()
 				_visualWords.size() &&
 				_dataTree.rows)
 		{
+			//exit(0);
+			std::cout << "---(update() VWDictionary.cpp) - else if 1---" << std::endl;
 			//just add not indexed words
 			int i = _dataTree.rows;
 			_dataTree.reserve(_dataTree.rows + _notIndexedWords.size());
@@ -588,6 +595,8 @@ void VWDictionary::update()
 		}
 		else
 		{
+			//exit(0);
+			std::cout << "---(update() VWDictionary.cpp) - else 2---" << std::endl;
 			_mapIndexId.clear();
 			_mapIdIndex.clear();
 			_dataTree = cv::Mat();
@@ -687,6 +696,7 @@ void VWDictionary::update()
 	_notIndexedWords.clear();
 	_removedIndexedWords.clear();
 	UDEBUG("");
+	flannIndex_js = _flannIndex;
 }
 
 void VWDictionary::clear(bool printWarningsIfNotEmpty)

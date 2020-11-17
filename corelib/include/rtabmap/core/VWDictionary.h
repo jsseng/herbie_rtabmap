@@ -120,6 +120,9 @@ public:
 public:
 	static cv::Mat convertBinTo32F(const cv::Mat & descriptorsIn, bool byteToFloat = true);
 	static cv::Mat convert32FToBin(const cv::Mat & descriptorsIn, bool byteToFloat = true);
+	std::map<int, VisualWord *> *vw_js; //pointer to visual words
+	FlannIndex * flannIndex_js; //pointer to flann index
+	cv::Mat dataTree_js;
 
 protected:
 	int getNextId();

@@ -7,6 +7,10 @@
 #include <rtabmap/utilite/UDirectory.h>
 #include <rtabmap/utilite/UFile.h>
 #include <rtabmap/utilite/UConversion.h>
+#include <chrono>
+#include <iostream>
+using namespace std;
+using namespace std::chrono;
 
 
 namespace rtabmap
@@ -147,23 +151,36 @@ SPDetector::~SPDetector()
 {
 }
 
+torch::Device *device1;
+int dflag = 0;
+
 std::vector<cv::KeyPoint> SPDetector::detect(const cv::Mat &img, const cv::Mat & mask)
 {
 	UASSERT(img.type() == CV_8UC1);
 	UASSERT(mask.empty() || (mask.type() == CV_8UC1 && img.cols == mask.cols && img.rows == mask.rows));
 	detected_ = false;
+        float rec = 1.0000000 / 255.0000000;
 	if(model_)
 	{
+                auto start = high_resolution_clock::now(); //start timing
 		torch::NoGradGuard no_grad_guard;
 		auto x = torch::from_blob(img.data, {1, 1, img.rows, img.cols}, torch::kByte);
-		x = x.to(torch::kFloat) / 255;
+		//x = x.to(torch::kFloat) / 255;
+		x = x.to(torch::kFloat) * rec;
 
-		torch::Device device(cuda_?torch::kCUDA:torch::kCPU);
+                if (dflag == 0) {
+		  device1 = new torch::Device(cuda_?torch::kCUDA:torch::kCPU);
+		  //device1 = new torch::Device(torch::kCUDA);
+                  dflag = 1;
+                }
+
+		//torch::Device device(cuda_?torch::kCUDA:torch::kCPU);
 		x = x.set_requires_grad(false);
-		auto out = model_->forward(x.to(device));
+		auto out = model_->forward(x.to(*device1));
 
 		prob_ = out[0].squeeze(0);  // [H, W]
 		desc_ = out[1];             // [1, 256, H/8, W/8]
+
 
 		auto kpts = (prob_ > threshold_);
 		kpts = torch::nonzero(kpts);  // [n_keypoints, 2]  (y, x)
@@ -178,6 +195,13 @@ std::vector<cv::KeyPoint> SPDetector::detect(const cv::Mat &img, const cv::Mat &
 		}
 
 		detected_ = true;
+
+                auto stop = high_resolution_clock::now(); 
+                auto duration = duration_cast<microseconds>(stop - start);
+                cout << "----" << duration.count() << "----" << endl;
+                cout << "====keypoints num: " << keypoints_no_nms.size() << "====" << endl;
+                //cout << "====" << img.rows << "====" << endl;
+
 		if (nms_ && !keypoints_no_nms.empty()) {
 			cv::Mat conf(keypoints_no_nms.size(), 1, CV_32F);
 			for (size_t i = 0; i < keypoints_no_nms.size(); i++) {
@@ -194,11 +218,14 @@ std::vector<cv::KeyPoint> SPDetector::detect(const cv::Mat &img, const cv::Mat &
 			std::vector<cv::KeyPoint> keypoints;
 			cv::Mat descEmpty;
 			NMS(keypoints_no_nms, conf, descEmpty, keypoints, descEmpty, border, dist_thresh, width, height);
+
+                
 			return keypoints;
 		}
 		else {
 			return keypoints_no_nms;
 		}
+
 	}
 	else
 	{

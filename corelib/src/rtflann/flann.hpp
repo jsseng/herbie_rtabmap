@@ -44,6 +44,9 @@
 
 #include "algorithms/all_indices.h"
 
+using std::cout;
+using std::endl;
+
 namespace rtflann
 {
 
@@ -137,6 +140,8 @@ public:
     void buildIndex()
     {
         if (!loaded_) {
+            std::cout << "JS----------------(buildIndex() - flann.hpp) Building index---------------" << endl;
+            std::cout << "JS----------------size: " << nnIndex_->size() << endl;
             nnIndex_->buildIndex();
         }
     }
