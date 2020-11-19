@@ -230,6 +230,7 @@ void Memory::loadDataFromDb(bool postInitClosingEvents)
 			std::set<int> ids;
 			_dbDriver->getAllNodeIds(ids, true);
 			_dbDriver->loadSignatures(std::list<int>(ids.begin(), ids.end()), dbSignatures);
+			std::cout << "done loading nodes" << std::endl;
 		}
 		else
 		{
@@ -406,7 +407,7 @@ void Memory::loadDataFromDb(bool postInitClosingEvents)
 		}
 		UDEBUG("%d words loaded!", _vwd->getUnusedWordsSize());
 		_vwd->update();
-		get_vwdictionary_info(_vwd); //JS
+		//get_vwdictionary_info(_vwd); //JS
 		if(postInitClosingEvents) UEventsManager::post(new RtabmapEventInit(uFormat("Loading dictionary, done! (%d words)", (int)_vwd->getUnusedWordsSize())));
 
 		if(postInitClosingEvents) UEventsManager::post(new RtabmapEventInit(std::string("Adding word references...")));
@@ -438,6 +439,7 @@ void Memory::loadDataFromDb(bool postInitClosingEvents)
 			UWARN("_vwd->getUnusedWordsSize() must be empty... size=%d", _vwd->getUnusedWordsSize());
 		}
 		UDEBUG("Total word references added = %d", _vwd->getTotalActiveReferences());
+		get_vwdictionary_info(_vwd); //JS
 
 		if(_lastSignature == 0)
 		{
@@ -467,14 +469,22 @@ void Memory::get_vwdictionary_info(VWDictionary* test1) {
 
 	int num_visual_words = test1->vw_js->size();
 	VisualWord* v;
+	int count =0;
 	for(std::map<int, VisualWord*>::iterator iter=test1->vw_js->begin(); iter!=test1->vw_js->end(); ++iter)
 	{
 		v = iter->second;
 		// std::cout << v->id() << std::endl;
+		// std::cout << v << " " << count << std::endl;
+		count++;
 	}
 
-	std::cout << test1->flannIndex_js->featuresDim() << std::endl;
-	std::cout << test1->flannIndex_js->memoryUsed() << std::endl;
+	std::cout << test1->flannIndex_js << std::endl;
+	std::cout << "num flann features dimensions: " << test1->flannIndex_js->featuresDim() << std::endl;
+	std::cout << "flann bytes used: " << test1->flannIndex_js->memoryUsed() << std::endl;
+	std::cout << "num indexed features: " << test1->flannIndex_js->indexedFeatures() << std::endl;
+	std::cout << "VWDictionary total active references: " << test1->getTotalActiveReferences() << std::endl;
+	std::cout << "_vwd: " << test1 << std::endl;
+	test1->flannIndex_js->debug(); 
 	return;
 }
 

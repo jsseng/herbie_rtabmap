@@ -64,6 +64,8 @@ public:
     virtual void loadIndex(FILE* stream) = 0;
 
     virtual void saveIndex(FILE* stream) = 0;
+
+	virtual void debug_index() {}
 };
 
 /**
@@ -75,6 +77,8 @@ class NNIndex : public IndexBase
 public:
     typedef typename Distance::ElementType ElementType;
     typedef typename Distance::ResultType DistanceType;
+
+	virtual void debug_index() {}
 
 	NNIndex(Distance d) : distance_(d), last_id_(0), size_(0), size_at_build_(0), veclen_(0),
 			removed_(false), removed_count_(0), data_ptr_(NULL)

@@ -318,6 +318,20 @@ public:
         }
     }
 
+    virtual void debug_index() {
+        std::cout << "number of flann datapoints: " << size_ << std::endl;
+        std::cout << "size of one flann datapoint: " << veclen_ << std::endl;
+        std::cout << "number of trees: " << trees_ << std::endl;
+        std::cout << "number of tree roots: " << tree_roots_.size() << std::endl;
+        
+        std::cout << "tree root addresses: " << std::endl;
+        
+        for (auto it = begin (tree_roots_); it != end (tree_roots_); ++it) {
+            std::cout << std::addressof(*it) << std::endl; //print the address of tree root
+            std::cout << (*it)->divfeat << std::endl; //print the address of tree root
+        }
+    }
+
 #ifdef FLANN_KDTREE_MEM_OPT
 
     /**

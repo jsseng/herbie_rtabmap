@@ -83,6 +83,10 @@ public:
     typedef typename Distance::ResultType DistanceType;
     typedef NNIndex<Distance> IndexType;
 
+    void debug() {
+        nnIndex_->debug_index();
+    }
+
     Index(const IndexParams& params, Distance distance = Distance() )
         : index_params_(params)
     {
