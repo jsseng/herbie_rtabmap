@@ -29,6 +29,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "rtabmap/utilite/ULogger.h"
 #include "rtabmap/utilite/UStl.h"
 
+using std::cout;
+
 namespace rtabmap
 {
 
@@ -76,6 +78,10 @@ unsigned long VisualWord::getMemoryUsed() const
 	memoryUsage += _oldReferences.size() * (sizeof(int)*2+sizeof(std::map<int ,int>::iterator)) + sizeof(std::map<int ,int>);
 	memoryUsage += _descriptor.total() * _descriptor.elemSize();
 	return memoryUsage;
+}
+
+void VisualWord::debug() {
+	std::cout << "_references: " << _references.size() << "," << _oldReferences.size() << std::endl;
 }
 
 } // namespace rtabmap

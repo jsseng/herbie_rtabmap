@@ -468,9 +468,6 @@ cv::Mat VWDictionary::convert32FToBin(const cv::Mat & descriptorsIn, bool byteTo
 
 void VWDictionary::update()
 {
-	vw_js = &_visualWords; //JS
-	dataTree_js = _dataTree;
-	
 	ULOGGER_DEBUG("incremental=%d", _incrementalDictionary?1:0);
 	if(!_incrementalDictionary)
 	{
@@ -517,6 +514,12 @@ void VWDictionary::update()
 						useDistanceL1_ = true;
 						if(_strategy == kNNFlannKdTree)
 						{
+							//in the flann index, data is stored as floats
+							// unsigned char *d = (unsigned char*) (w->getDescriptor().data);
+							// for (int i=0;i<256;i++) {
+							// 	std::cout << w->getDescriptor().size();
+							// 	d++;
+							// }
 							descriptor = convertBinTo32F(w->getDescriptor(), _byteToFloat);
 						}
 						else
@@ -604,6 +607,7 @@ void VWDictionary::update()
 
 			if(_visualWords.size())
 			{
+				std::cout << "---(update() VWDictionary.cpp) - else 3---" << std::endl;
 				UTimer timer;
 				timer.start();
 
@@ -696,7 +700,6 @@ void VWDictionary::update()
 	_notIndexedWords.clear();
 	_removedIndexedWords.clear();
 	UDEBUG("");
-	flannIndex_js = _flannIndex;
 }
 
 void VWDictionary::clear(bool printWarningsIfNotEmpty)
@@ -1542,6 +1545,33 @@ void VWDictionary::exportDictionary(const char * fileNameReferences, const char 
 		fclose(foutRef);
 	if(foutDesc)
 		fclose(foutDesc);
+}
+
+void VWDictionary::debug()
+{
+	std::cout << _flannIndex << std::endl;
+	std::cout << "num flann features dimensions: " << _flannIndex->featuresDim() << std::endl;
+	std::cout << "flann bytes used: " << _flannIndex->memoryUsed() << std::endl;
+	std::cout << "num indexed features: " << _flannIndex->indexedFeatures() << std::endl;
+	std::cout << "VWDictionary total active references: " << getTotalActiveReferences() << std::endl;
+	// std::cout << "_vwd: " << test1 << std::endl;
+
+	_flannIndex->debug();
+	std::cout << "_mapIndexId: " << _mapIndexId.size() << std::endl;
+	std::cout << "_mapIndexId: " << _mapIdIndex.size() << std::endl;
+	std::cout << "_unusedWords: " << _unusedWords.size() << std::endl;
+	std::cout << "_notIndexedWords: " << _notIndexedWords.size() << std::endl;
+	std::cout << "_removedIndexedWords: " << _removedIndexedWords.size() << std::endl;
+
+	std::cout << "datatree rows: " << _dataTree.rows << std::endl;
+	std::cout << "datatree cols: " << _dataTree.cols << std::endl;
+
+	VisualWord* v;
+	for(std::map<int, VisualWord*>::iterator iter=_visualWords.begin(); iter!=_visualWords.end(); ++iter)
+	{
+		v = iter->second;
+		//v->debug();
+	}
 }
 
 } // namespace rtabmap

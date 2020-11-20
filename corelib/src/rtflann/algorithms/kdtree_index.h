@@ -319,16 +319,49 @@ public:
     }
 
     virtual void debug_index() {
+        std::cout << "------------------------------" << std::endl;
+        print_params(index_params_);
+        std::cout << "------------------------------" << std::endl;
+
         std::cout << "number of flann datapoints: " << size_ << std::endl;
         std::cout << "size of one flann datapoint: " << veclen_ << std::endl;
+        std::cout << "size of ids_: " << ids_.size() << std::endl;
+        std::cout << "size of points_: " << points_.size() << std::endl;
         std::cout << "number of trees: " << trees_ << std::endl;
         std::cout << "number of tree roots: " << tree_roots_.size() << std::endl;
         
-        std::cout << "tree root addresses: " << std::endl;
-        
+        int tree_root_counter = 0;
         for (auto it = begin (tree_roots_); it != end (tree_roots_); ++it) {
+            std::cout << "tree root: " << tree_root_counter << std::endl;
             std::cout << std::addressof(*it) << std::endl; //print the address of tree root
-            std::cout << (*it)->divfeat << std::endl; //print the address of tree root
+            std::cout << (*it)->divfeat << std::endl; //print the dividing dimension of the node
+		    float point1 = (*it)->divval;
+            std::cout << point1 << std::endl; //print the threshold value
+                
+            //In a kd tree, only the leaf nodes contain data.
+            //The non-leaf nodes contain a dimension and threshold value (they do not contain data).
+            int depth = 0;
+            auto root = (*it);
+            while (!(root->child1 == NULL && root->child2 == NULL)) { //traverse left until reaching a leaf node
+                if (root->child1 != NULL) {
+                    root = root->child1;
+                    depth++;
+                } else if (root->child2 != NULL) {
+                    root = root->child2;
+                    depth++;
+                }
+            }
+            std::cout << "tree depth: " << depth << std::endl;
+                
+            //print out the ORB descriptor (a 256-bit bit string)
+            float* r = root->point;
+            for (unsigned int i=0;i<veclen_;i++) {
+                std::cout << *r; 
+                r++;
+            }
+            std::cout << std::endl;
+
+            tree_root_counter++;
         }
     }
 

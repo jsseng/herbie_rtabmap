@@ -465,26 +465,7 @@ void Memory::loadDataFromDb(bool postInitClosingEvents)
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 void Memory::get_vwdictionary_info(VWDictionary* test1) {
-	std::cout << "-----number of visual words: " << test1->vw_js->size() << std::endl;
-
-	int num_visual_words = test1->vw_js->size();
-	VisualWord* v;
-	int count =0;
-	for(std::map<int, VisualWord*>::iterator iter=test1->vw_js->begin(); iter!=test1->vw_js->end(); ++iter)
-	{
-		v = iter->second;
-		// std::cout << v->id() << std::endl;
-		// std::cout << v << " " << count << std::endl;
-		count++;
-	}
-
-	std::cout << test1->flannIndex_js << std::endl;
-	std::cout << "num flann features dimensions: " << test1->flannIndex_js->featuresDim() << std::endl;
-	std::cout << "flann bytes used: " << test1->flannIndex_js->memoryUsed() << std::endl;
-	std::cout << "num indexed features: " << test1->flannIndex_js->indexedFeatures() << std::endl;
-	std::cout << "VWDictionary total active references: " << test1->getTotalActiveReferences() << std::endl;
-	std::cout << "_vwd: " << test1 << std::endl;
-	test1->flannIndex_js->debug(); 
+	_vwd->debug();
 	return;
 }
 
