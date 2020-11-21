@@ -32,6 +32,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <opencv2/core/core.hpp>
 #include <map>
 #include <iostream>
+#include <fstream>
 
 namespace rtabmap
 {
@@ -54,6 +55,8 @@ public:
 	bool isSaved() const {return _saved;}
 	void setSaved(bool saved) {_saved = saved;}
 
+	void save_visualword(std::ofstream *outfile);
+	void load_visualword(std::ifstream *infile);
 	void debug();
 private:
 	int _id;

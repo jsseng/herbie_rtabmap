@@ -466,6 +466,8 @@ void Memory::loadDataFromDb(bool postInitClosingEvents)
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 void Memory::get_vwdictionary_info(VWDictionary* test1) {
 	_vwd->debug();
+	_vwd->save();
+	_vwd->load();
 	return;
 }
 

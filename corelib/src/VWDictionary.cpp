@@ -36,6 +36,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "rtabmap/utilite/UtiLite.h"
 
 #include <opencv2/opencv_modules.hpp>
+#include <chrono>
 
 #if CV_MAJOR_VERSION < 3
 #ifdef HAVE_OPENCV_GPU
@@ -1565,13 +1566,154 @@ void VWDictionary::debug()
 
 	std::cout << "datatree rows: " << _dataTree.rows << std::endl;
 	std::cout << "datatree cols: " << _dataTree.cols << std::endl;
+}
 
-	VisualWord* v;
+void VWDictionary::save()
+{
+	std::ofstream* outfile;
+	std::ifstream infile;
+	outfile = new std::ofstream();
+	outfile->open("vwdictionary.dat", std::ios::out | std::ios::binary | std::ios::trunc );
+
+	int visualword_num = _visualWords.size();
+	outfile->write(reinterpret_cast<char *>(&visualword_num), 4);
 	for(std::map<int, VisualWord*>::iterator iter=_visualWords.begin(); iter!=_visualWords.end(); ++iter)
 	{
-		v = iter->second;
-		//v->debug();
+		visualword_num = iter->first;
+		// outfile->write(reinterpret_cast<char*> (&visualword_num),4);  //write out the id
+		(iter->second)->save_visualword(outfile);
 	}
+	
+	std::cout << "saved _incrementalDictionary: " << _incrementalDictionary << std::endl;
+	int _iD = _incrementalDictionary;
+	outfile->write(reinterpret_cast<const char *> (&_iD),4); //_incrementalDictionary
+
+	std::cout << "saved _incrementalFlann: " << _incrementalFlann << std::endl;
+	int _iF = _incrementalFlann;
+	outfile->write(reinterpret_cast<const char *> (&_iF),4); //_incrementalFlann
+
+	std::cout << "saved rebalancing factor: " << _rebalancingFactor << std::endl;
+	outfile->write(reinterpret_cast<const char *> (&_rebalancingFactor),4); //_nndrRatio
+
+	std::cout << "saved _byteToFloat: " << _byteToFloat << std::endl;
+	int _bTF = _byteToFloat;
+	outfile->write(reinterpret_cast<const char *> (&_bTF),4); //_byteToFloat
+
+	outfile->write(reinterpret_cast<const char *> (&_nndrRatio),4); //_nndrRatio
+
+	int dictionarypath_length = _dictionaryPath.length();
+	outfile->write(reinterpret_cast<const char *> (&dictionarypath_length),4); //length of the dictionary path
+	outfile->write(reinterpret_cast<const char *> (_dictionaryPath.data()),dictionarypath_length); //_dictionaryPath
+
+	int newdictionarypath_length = _newDictionaryPath.length();
+	outfile->write(reinterpret_cast<const char *> (&newdictionarypath_length),4); //length of the new dictionary path
+	outfile->write(reinterpret_cast<const char *> (_newDictionaryPath.data()),newdictionarypath_length); //_newDictionaryPath
+
+	int _nWCT = _newWordsComparedTogether;
+	outfile->write(reinterpret_cast<const char *> (&_nWCT),4); //_newWordsCompareTogether
+
+	outfile->write(reinterpret_cast<const char *> (&_lastWordId),4); //_lastWordId
+
+	int uD = useDistanceL1_;
+	outfile->write(reinterpret_cast<const char *> (&uD),4); //useDistanceL1_
+
+	//std::map<int, int> _mapIndexId;
+	int mapIndexId_temp = _mapIndexId.size();
+	outfile->write(reinterpret_cast<char *>(&mapIndexId_temp), 4);
+	for(std::map<int, int>::iterator iter=_mapIndexId.begin(); iter!=_mapIndexId.end(); ++iter)
+	{
+		mapIndexId_temp = iter->first;
+		outfile->write(reinterpret_cast<char*> (&mapIndexId_temp),4);
+		mapIndexId_temp = iter->second;
+		outfile->write(reinterpret_cast<char*> (&mapIndexId_temp),4);
+	}
+
+	// std::map<int, int> _mapIdIndex;
+	int mapIdIndex_temp = _mapIdIndex.size();
+	outfile->write(reinterpret_cast<char *>(&mapIdIndex_temp), 4);
+	for(std::map<int, int>::iterator iter=_mapIdIndex.begin(); iter!=_mapIdIndex.end(); ++iter)
+	{
+		mapIdIndex_temp = iter->first;
+		outfile->write(reinterpret_cast<char*> (&mapIdIndex_temp),4);
+		mapIdIndex_temp = iter->second;
+		outfile->write(reinterpret_cast<char*> (&mapIdIndex_temp),4);
+	}
+
+	// std::map<int, VisualWord *> _unusedWords; //<id,VisualWord*>, note that these words stay in _visualWords
+	// std::set<int> _notIndexedWords;			  // Words that are not indexed in the dictionary
+	// std::set<int> _removedIndexedWords;		  // Words not anymore in the dictionary but still indexed in the dictionary
+
+	outfile->close();
+
+	//check data
+	infile.open("vwdictionary.dat", std::ios::in | std::ios::binary);
+	infile.read(reinterpret_cast<char*> (&visualword_num),4);
+	std::cout << "test data: " << visualword_num << std::endl;
+	infile.close();
+}
+
+void VWDictionary::load() {
+	auto t1 = std::chrono::high_resolution_clock::now();
+	std::ifstream* infile;
+	infile = new std::ifstream();
+	infile->open("vwdictionary.dat", std::ios::in | std::ios::binary);
+
+	_visualWords.clear();
+	int visualword_size;
+	VisualWord* v;
+	// int id;
+	unsigned char buffer[32];
+	infile->read(reinterpret_cast<char *>(&visualword_size), 4);  //read in the number of visual words
+	std::cout << "restored visualword_size: " << visualword_size << std::endl;
+	for(int i=0; i<visualword_size; i++) {
+		cv::Mat d;	
+		d = cv::Mat(1, 32, CV_8U);	
+		v = new VisualWord(i,d);
+		v->load_visualword(infile);
+		_visualWords.insert(std::pair<int,VisualWord*>(i,v));
+	}
+	
+	int _iD;
+	infile->read(reinterpret_cast<char *> (&_iD),4); //_incrementalDictionary
+	_incrementalDictionary = _iD;
+	std::cout << "restored _incrementalDictionary factor: " << _incrementalDictionary << std::endl;
+
+	int _iF;
+	infile->read(reinterpret_cast<char *> (&_iF),4); //_incrementalFlann
+	_incrementalFlann = _iF;
+	std::cout << "restored _incrementalFlann: " << _incrementalFlann << std::endl;
+
+	infile->read(reinterpret_cast<char *> (&_rebalancingFactor),4); //_nndrRatio
+	std::cout << "restored rebalancing factor: " << _rebalancingFactor << std::endl;
+
+	int _bTF;
+	infile->read(reinterpret_cast<char *> (&_bTF),4); //_byteToFloat
+	_byteToFloat = _bTF;
+	std::cout << "restored _byteToFloat: " << _byteToFloat << std::endl;
+
+	infile->read(reinterpret_cast<char *> (&_nndrRatio),4); //_nndrRatio
+	std::cout << "restored _nndrRatio factor: " << _nndrRatio << std::endl;
+
+	// int dictionarypath_length = _dictionaryPath.length();
+	// outfile->write(reinterpret_cast<const char *> (&dictionarypath_length),4); //length of the dictionary path
+	// outfile->write(reinterpret_cast<const char *> (_dictionaryPath.data()),dictionarypath_length); //_dictionaryPath
+
+	// int newdictionarypath_length = _newDictionaryPath.length();
+	// outfile->write(reinterpret_cast<const char *> (&newdictionarypath_length),4); //length of the new dictionary path
+	// outfile->write(reinterpret_cast<const char *> (_newDictionaryPath.data()),newdictionarypath_length); //_newDictionaryPath
+
+	// int _nWCT = _newWordsComparedTogether;
+	// outfile->write(reinterpret_cast<const char *> (&_nWCT),4); //_newWordsCompareTogether
+
+	// outfile->write(reinterpret_cast<const char *> (&_lastWordId),4); //_lastWordId
+
+	// int uD = useDistanceL1_;
+	// outfile->write(reinterpret_cast<const char *> (&uD),4); //useDistanceL1_
+
+	infile->close();
+    auto t2 = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double, std::milli> fp_ms = t2 - t1;
+	std::cout << "load time in milliseconds: " << fp_ms.count() << std::endl;
 }
 
 } // namespace rtabmap
