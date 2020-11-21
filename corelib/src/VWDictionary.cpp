@@ -1585,58 +1585,61 @@ void VWDictionary::save()
 	}
 	
 	std::cout << "saved _incrementalDictionary: " << _incrementalDictionary << std::endl;
-	int _iD = _incrementalDictionary;
-	outfile->write(reinterpret_cast<const char *> (&_iD),4); //_incrementalDictionary
+	outfile->write(reinterpret_cast<const char *> (&_incrementalDictionary),sizeof(bool)); //_incrementalDictionary
 
 	std::cout << "saved _incrementalFlann: " << _incrementalFlann << std::endl;
-	int _iF = _incrementalFlann;
-	outfile->write(reinterpret_cast<const char *> (&_iF),4); //_incrementalFlann
+	outfile->write(reinterpret_cast<const char *> (&_incrementalFlann),sizeof(bool)); //_incrementalFlann
 
 	std::cout << "saved rebalancing factor: " << _rebalancingFactor << std::endl;
-	outfile->write(reinterpret_cast<const char *> (&_rebalancingFactor),4); //_nndrRatio
+	outfile->write(reinterpret_cast<const char *> (&_rebalancingFactor),sizeof(float)); //_rebalancingFactor
 
 	std::cout << "saved _byteToFloat: " << _byteToFloat << std::endl;
-	int _bTF = _byteToFloat;
-	outfile->write(reinterpret_cast<const char *> (&_bTF),4); //_byteToFloat
+	outfile->write(reinterpret_cast<const char *> (&_byteToFloat),sizeof(bool)); //_byteToFloat
 
-	outfile->write(reinterpret_cast<const char *> (&_nndrRatio),4); //_nndrRatio
+	std::cout << "saved _nndrRatio: " << _nndrRatio << std::endl;
+	outfile->write(reinterpret_cast<const char *> (&_nndrRatio),sizeof(float)); //_nndrRatio
 
 	int dictionarypath_length = _dictionaryPath.length();
-	outfile->write(reinterpret_cast<const char *> (&dictionarypath_length),4); //length of the dictionary path
+	outfile->write(reinterpret_cast<const char *> (&dictionarypath_length),sizeof(int)); //length of the dictionary path
 	outfile->write(reinterpret_cast<const char *> (_dictionaryPath.data()),dictionarypath_length); //_dictionaryPath
 
 	int newdictionarypath_length = _newDictionaryPath.length();
-	outfile->write(reinterpret_cast<const char *> (&newdictionarypath_length),4); //length of the new dictionary path
+	outfile->write(reinterpret_cast<const char *> (&newdictionarypath_length),sizeof(int)); //length of the new dictionary path
 	outfile->write(reinterpret_cast<const char *> (_newDictionaryPath.data()),newdictionarypath_length); //_newDictionaryPath
 
-	int _nWCT = _newWordsComparedTogether;
-	outfile->write(reinterpret_cast<const char *> (&_nWCT),4); //_newWordsCompareTogether
+	outfile->write(reinterpret_cast<const char *> (&_newWordsComparedTogether),sizeof(bool)); //_newWordsCompareTogether
+	std::cout << "saved _newWordsComparedTogether: " << _newWordsComparedTogether << std::endl;
 
-	outfile->write(reinterpret_cast<const char *> (&_lastWordId),4); //_lastWordId
+	outfile->write(reinterpret_cast<const char *> (&_lastWordId),sizeof(int)); //_lastWordId
+	std::cout << "saved _lastWordId: " << _lastWordId << std::endl;
 
-	int uD = useDistanceL1_;
-	outfile->write(reinterpret_cast<const char *> (&uD),4); //useDistanceL1_
+	outfile->write(reinterpret_cast<const char *> (&useDistanceL1_),sizeof(bool)); //useDistanceL1_
+	std::cout << "saved useDistanceL1_: " << useDistanceL1_ << std::endl;
+
+	int strat = _strategy;
+	outfile->write(reinterpret_cast<const char *> (&strat),4); //useDistanceL1_
+	std::cout << "saved _strategy: " << _strategy << std::endl;
 
 	//std::map<int, int> _mapIndexId;
 	int mapIndexId_temp = _mapIndexId.size();
-	outfile->write(reinterpret_cast<char *>(&mapIndexId_temp), 4);
+	outfile->write(reinterpret_cast<char *>(&mapIndexId_temp), sizeof(int));
 	for(std::map<int, int>::iterator iter=_mapIndexId.begin(); iter!=_mapIndexId.end(); ++iter)
 	{
 		mapIndexId_temp = iter->first;
-		outfile->write(reinterpret_cast<char*> (&mapIndexId_temp),4);
+		outfile->write(reinterpret_cast<char*> (&mapIndexId_temp),sizeof(int));
 		mapIndexId_temp = iter->second;
-		outfile->write(reinterpret_cast<char*> (&mapIndexId_temp),4);
+		outfile->write(reinterpret_cast<char*> (&mapIndexId_temp),sizeof(int));
 	}
 
 	// std::map<int, int> _mapIdIndex;
 	int mapIdIndex_temp = _mapIdIndex.size();
-	outfile->write(reinterpret_cast<char *>(&mapIdIndex_temp), 4);
+	outfile->write(reinterpret_cast<char *>(&mapIdIndex_temp), sizeof(int));
 	for(std::map<int, int>::iterator iter=_mapIdIndex.begin(); iter!=_mapIdIndex.end(); ++iter)
 	{
 		mapIdIndex_temp = iter->first;
-		outfile->write(reinterpret_cast<char*> (&mapIdIndex_temp),4);
+		outfile->write(reinterpret_cast<char*> (&mapIdIndex_temp),sizeof(int));
 		mapIdIndex_temp = iter->second;
-		outfile->write(reinterpret_cast<char*> (&mapIdIndex_temp),4);
+		outfile->write(reinterpret_cast<char*> (&mapIdIndex_temp),sizeof(int));
 	}
 
 	// std::map<int, VisualWord *> _unusedWords; //<id,VisualWord*>, note that these words stay in _visualWords
@@ -1647,7 +1650,7 @@ void VWDictionary::save()
 
 	//check data
 	infile.open("vwdictionary.dat", std::ios::in | std::ios::binary);
-	infile.read(reinterpret_cast<char*> (&visualword_num),4);
+	infile.read(reinterpret_cast<char*> (&visualword_num),sizeof(int));
 	std::cout << "test data: " << visualword_num << std::endl;
 	infile.close();
 }
@@ -1662,9 +1665,8 @@ void VWDictionary::load() {
 	int visualword_size;
 	VisualWord* v;
 	// int id;
-	unsigned char buffer[32];
-	infile->read(reinterpret_cast<char *>(&visualword_size), 4);  //read in the number of visual words
-	std::cout << "restored visualword_size: " << visualword_size << std::endl;
+	infile->read(reinterpret_cast<char *>(&visualword_size), sizeof(int));  //read in the number of visual words
+	// std::cout << "restored visualword_size: " << visualword_size << std::endl;
 	for(int i=0; i<visualword_size; i++) {
 		cv::Mat d;	
 		d = cv::Mat(1, 32, CV_8U);	
@@ -1673,42 +1675,68 @@ void VWDictionary::load() {
 		_visualWords.insert(std::pair<int,VisualWord*>(i,v));
 	}
 	
-	int _iD;
-	infile->read(reinterpret_cast<char *> (&_iD),4); //_incrementalDictionary
-	_incrementalDictionary = _iD;
+	infile->read(reinterpret_cast<char *> (&_incrementalDictionary),sizeof(bool)); //_incrementalDictionary
 	std::cout << "restored _incrementalDictionary factor: " << _incrementalDictionary << std::endl;
 
-	int _iF;
-	infile->read(reinterpret_cast<char *> (&_iF),4); //_incrementalFlann
-	_incrementalFlann = _iF;
+	infile->read(reinterpret_cast<char *> (&_incrementalFlann),sizeof(bool)); //_incrementalFlann
 	std::cout << "restored _incrementalFlann: " << _incrementalFlann << std::endl;
 
-	infile->read(reinterpret_cast<char *> (&_rebalancingFactor),4); //_nndrRatio
+	infile->read(reinterpret_cast<char *> (&_rebalancingFactor),sizeof(float)); //_rebalancingFactor
 	std::cout << "restored rebalancing factor: " << _rebalancingFactor << std::endl;
 
-	int _bTF;
-	infile->read(reinterpret_cast<char *> (&_bTF),4); //_byteToFloat
-	_byteToFloat = _bTF;
+	infile->read(reinterpret_cast<char *> (&_byteToFloat),sizeof(bool)); //_byteToFloat
 	std::cout << "restored _byteToFloat: " << _byteToFloat << std::endl;
 
-	infile->read(reinterpret_cast<char *> (&_nndrRatio),4); //_nndrRatio
-	std::cout << "restored _nndrRatio factor: " << _nndrRatio << std::endl;
+	infile->read(reinterpret_cast<char *> (&_nndrRatio),sizeof(float)); //_nndrRatio
+	std::cout << "restored _nndrRatio: " << _nndrRatio << std::endl;
 
-	// int dictionarypath_length = _dictionaryPath.length();
-	// outfile->write(reinterpret_cast<const char *> (&dictionarypath_length),4); //length of the dictionary path
-	// outfile->write(reinterpret_cast<const char *> (_dictionaryPath.data()),dictionarypath_length); //_dictionaryPath
+	char temp_string[100];
+	int dictionarypath_length;
+	infile->read(reinterpret_cast<char *> (&dictionarypath_length),sizeof(int)); //length of the dictionary path
+	infile->read(temp_string,dictionarypath_length); //_dictionaryPath
+	temp_string[dictionarypath_length] = 0;
+	_dictionaryPath = temp_string;
 
-	// int newdictionarypath_length = _newDictionaryPath.length();
-	// outfile->write(reinterpret_cast<const char *> (&newdictionarypath_length),4); //length of the new dictionary path
-	// outfile->write(reinterpret_cast<const char *> (_newDictionaryPath.data()),newdictionarypath_length); //_newDictionaryPath
+	int newdictionarypath_length;
+	infile->read(reinterpret_cast<char *> (&newdictionarypath_length),sizeof(int)); //length of the new dictionary path
+	infile->read(temp_string,newdictionarypath_length); //_dictionaryPath
+	temp_string[newdictionarypath_length] = 0;
+	_newDictionaryPath = temp_string;
 
-	// int _nWCT = _newWordsComparedTogether;
-	// outfile->write(reinterpret_cast<const char *> (&_nWCT),4); //_newWordsCompareTogether
+	infile->read(reinterpret_cast<char *> (&_newWordsComparedTogether),sizeof(bool)); //_newWordsCompareTogether
+	std::cout << "restored _newWordsComparedTogether: " << _newWordsComparedTogether << std::endl;
 
-	// outfile->write(reinterpret_cast<const char *> (&_lastWordId),4); //_lastWordId
+	infile->read(reinterpret_cast<char *> (&_lastWordId),sizeof(int)); //_lastWordId
+	std::cout << "restored _lastWordId: " << _lastWordId << std::endl;
 
-	// int uD = useDistanceL1_;
-	// outfile->write(reinterpret_cast<const char *> (&uD),4); //useDistanceL1_
+	infile->read(reinterpret_cast<char *> (&useDistanceL1_),sizeof(bool)); //useDistanceL1_
+	std::cout << "restored useDistanceL1_: " << useDistanceL1_ << std::endl;
+
+	int strat;
+	infile->read(reinterpret_cast<char *> (&strat),sizeof(int)); //useDistanceL1_
+	_strategy = static_cast<NNStrategy>(strat);
+	std::cout << "restored _strategy: " << _strategy << std::endl;
+
+	//std::map<int, int> _mapIndexId;
+	int tempa, tempb;
+	int mapIndexId_size;
+	infile->read(reinterpret_cast<char *>(&mapIndexId_size), sizeof(int));
+	for(int i=0; i<mapIndexId_size; i++)
+	{
+		infile->read(reinterpret_cast<char*> (&tempa),sizeof(int));
+		infile->read(reinterpret_cast<char*> (&tempb),sizeof(int));
+		_mapIndexId.insert(std::pair<int,int>(tempa,tempb));
+	}
+
+	// std::map<int, int> _mapIdIndex;
+	int mapIdIndex_size;
+	infile->read(reinterpret_cast<char *>(&mapIdIndex_size), sizeof(int));
+	for(int i=0; i<mapIdIndex_size; i++)
+	{
+		infile->read(reinterpret_cast<char*> (&tempa),sizeof(int));
+		infile->read(reinterpret_cast<char*> (&tempb),sizeof(int));
+		_mapIdIndex.insert(std::pair<int,int>(tempa,tempb));
+	}
 
 	infile->close();
     auto t2 = std::chrono::high_resolution_clock::now();
