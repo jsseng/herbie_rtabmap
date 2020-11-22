@@ -380,6 +380,7 @@ void Memory::loadDataFromDb(bool postInitClosingEvents)
 			{
 				if(wordIds.size())
 				{
+					std::cout << "_vwd.size before: " << _vwd->getVisualWords().size() << std::endl;
 					std::list<VisualWord*> words;
 					_dbDriver->loadWords(wordIds, words);
 					for(std::list<VisualWord*>::iterator iter = words.begin(); iter!=words.end(); ++iter)
@@ -390,6 +391,7 @@ void Memory::loadDataFromDb(bool postInitClosingEvents)
 					int id = 0;
 					_dbDriver->getLastWordId(id);
 					_vwd->setLastWordId(id);
+					std::cout << "_vwd.size after: " << _vwd->getVisualWords().size() << std::endl;
 				}
 				std::cout << "----Running load() 1----" << std::endl;
 			}

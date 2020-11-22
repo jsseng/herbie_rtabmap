@@ -89,31 +89,28 @@ void VisualWord::save_visualword(std::ofstream *outfile) {
 	int a,b;
 	outfile->write(reinterpret_cast<const char *> (_descriptor.data),32); //32 bytes = 256 ORB bits / 8 bits
 
-	char s;
-	outfile->write(reinterpret_cast<const char *> (&s),1); //_saved
-	_saved = (int) s;
+	outfile->write(reinterpret_cast<const char *> (&_saved),sizeof(bool)); //_saved
 
-	int t = _totalReferences;
-	outfile->write(reinterpret_cast<const char *> (&t),4); //_totalReferences
+	outfile->write(reinterpret_cast<const char *> (&_totalReferences),sizeof(int)); //_totalReferences
 
 	int _references_size = _references.size();
-	outfile->write(reinterpret_cast<const char *> (&_references_size),4); //_references size
+	outfile->write(reinterpret_cast<const char *> (&_references_size),sizeof(int)); //_references size
 	for(std::map<int, int>::iterator iter = _references.begin(); iter!=_references.end(); ++iter)
 	{
 		a = iter->first;
 		b = iter->second;
-		outfile->write(reinterpret_cast<char*> (&a),4);
-		outfile->write(reinterpret_cast<char*> (&b),4);
+		outfile->write(reinterpret_cast<char*> (&a),sizeof(int));
+		outfile->write(reinterpret_cast<char*> (&b),sizeof(int));
 	}
 
 	int _oldReferences_size = _oldReferences.size();
-	outfile->write(reinterpret_cast<const char *> (&_oldReferences_size),4); //_references size
+	outfile->write(reinterpret_cast<const char *> (&_oldReferences_size),sizeof(int)); //_references size
 	for(std::map<int, int>::iterator iter = _oldReferences.begin(); iter!=_oldReferences.end(); ++iter)
 	{
 		a = iter->first;
 		b = iter->second;
-		outfile->write(reinterpret_cast<char*> (&a),4);
-		outfile->write(reinterpret_cast<char*> (&b),4);
+		outfile->write(reinterpret_cast<char*> (&a),sizeof(int));
+		outfile->write(reinterpret_cast<char*> (&b),sizeof(int));
 	}
 }
 
@@ -122,27 +119,25 @@ void VisualWord::load_visualword(std::ifstream *infile) {
 	int a,b;
 	infile->read(reinterpret_cast<char *> (_descriptor.data),32); //32 bytes = 256 ORB bits / 8 bits
 
-	char s;
-	infile->read(reinterpret_cast<char *> (&s),1); //_saved
-	_saved = (int) s;
+	infile->read(reinterpret_cast<char *> (&_saved),sizeof(bool)); //_saved
 
-	infile->read(reinterpret_cast<char *> (&_totalReferences),4); //_totalReferences
+	infile->read(reinterpret_cast<char *> (&_totalReferences),sizeof(int)); //_totalReferences
 
 	int _references_size;
-	infile->read(reinterpret_cast<char *> (&_references_size),4); //_references size
-	for (int i=0; i< _references_size; i++)
+	infile->read(reinterpret_cast<char *> (&_references_size),sizeof(int)); //_references size
+	for (int i=0; i<_references_size; i++)
 	{
-		infile->read(reinterpret_cast<char*> (&a),4);
-		infile->read(reinterpret_cast<char*> (&b),4);
+		infile->read(reinterpret_cast<char*> (&a),sizeof(int));
+		infile->read(reinterpret_cast<char*> (&b),sizeof(int));
 		_references.insert(std::pair<int,int>(a,b));
 	}
 
 	int _oldReferences_size;
-	infile->read(reinterpret_cast<char *> (&_oldReferences_size),4); //_oldReferences size
-	for (int i=0; i< _oldReferences_size; i++)
+	infile->read(reinterpret_cast<char *> (&_oldReferences_size),sizeof(int)); //_oldReferences size
+	for (int i=0; i<_oldReferences_size; i++)
 	{
-		infile->read(reinterpret_cast<char*> (&a),4);
-		infile->read(reinterpret_cast<char*> (&b),4);
+		infile->read(reinterpret_cast<char*> (&a),sizeof(int));
+		infile->read(reinterpret_cast<char*> (&b),sizeof(int));
 		_oldReferences.insert(std::pair<int,int>(a,b));
 	}
 }

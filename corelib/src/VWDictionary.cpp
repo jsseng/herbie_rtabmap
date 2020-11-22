@@ -472,6 +472,7 @@ void VWDictionary::update()
 	ULOGGER_DEBUG("incremental=%d", _incrementalDictionary?1:0);
 	if(!_incrementalDictionary)
 	{
+		std::cout << "-----------------fixed dictionary--------------" << std::endl;
 		// reload the fixed dictionary if it has been cleared or not yet initialized
 		this->setFixedDictionary(_newDictionaryPath);
 
@@ -498,6 +499,7 @@ void VWDictionary::update()
 				_flannIndex->removePoint(_mapIdIndex.at(*iter));
 				_mapIndexId.erase(_mapIdIndex.at(*iter));
 				_mapIdIndex.erase(*iter);
+				std::cout << "---------removing word-------------" << std::endl;
 			}
 			ULOGGER_DEBUG("Incremental FLANN: Removing %d words... done!", (int)_removedIndexedWords.size());
 
@@ -1123,6 +1125,7 @@ std::vector<int> VWDictionary::findNN(const std::list<VisualWord *> & vws) const
 	}
 	return std::vector<int>(vws.size(), 0);
 }
+
 std::vector<int> VWDictionary::findNN(const cv::Mat & queryIn) const
 {
 	UTimer timer;
@@ -1557,7 +1560,7 @@ void VWDictionary::debug()
 	std::cout << "VWDictionary total active references: " << getTotalActiveReferences() << std::endl;
 	// std::cout << "_vwd: " << test1 << std::endl;
 
-	_flannIndex->debug();
+	//_flannIndex->debug();
 	std::cout << "_mapIndexId: " << _mapIndexId.size() << std::endl;
 	std::cout << "_mapIndexId: " << _mapIdIndex.size() << std::endl;
 	std::cout << "_unusedWords: " << _unusedWords.size() << std::endl;
@@ -1576,11 +1579,11 @@ void VWDictionary::save()
 	outfile->open("vwdictionary.dat", std::ios::out | std::ios::binary | std::ios::trunc );
 
 	int visualword_num = _visualWords.size();
-	outfile->write(reinterpret_cast<char *>(&visualword_num), 4);
+	outfile->write(reinterpret_cast<char *>(&visualword_num), sizeof(int));
 	for(std::map<int, VisualWord*>::iterator iter=_visualWords.begin(); iter!=_visualWords.end(); ++iter)
 	{
 		visualword_num = iter->first;
-		// outfile->write(reinterpret_cast<char*> (&visualword_num),4);  //write out the id
+		outfile->write(reinterpret_cast<char*> (&visualword_num),sizeof(int));  //write out the id
 		(iter->second)->save_visualword(outfile);
 	}
 	
@@ -1617,7 +1620,7 @@ void VWDictionary::save()
 	std::cout << "saved useDistanceL1_: " << useDistanceL1_ << std::endl;
 
 	int strat = _strategy;
-	outfile->write(reinterpret_cast<const char *> (&strat),4); //useDistanceL1_
+	outfile->write(reinterpret_cast<const char *> (&strat),sizeof(int)); //useDistanceL1_
 	std::cout << "saved _strategy: " << _strategy << std::endl;
 
 	//std::map<int, int> _mapIndexId;
@@ -1643,16 +1646,45 @@ void VWDictionary::save()
 	}
 
 	// std::map<int, VisualWord *> _unusedWords; //<id,VisualWord*>, note that these words stay in _visualWords
+	int unused_visualword_num = _unusedWords.size();
+	std::cout << "saving unused visual word size: " << unused_visualword_num << std::endl;
+	outfile->write(reinterpret_cast<char *>(&unused_visualword_num), sizeof(int));
+	for(std::map<int, VisualWord*>::iterator iter=_unusedWords.begin(); iter!=_unusedWords.end(); ++iter)
+	{
+		unused_visualword_num = iter->first;
+		outfile->write(reinterpret_cast<char*> (&unused_visualword_num),sizeof(int));  //write out the id
+		(iter->second)->save_visualword(outfile);
+	}
+
 	// std::set<int> _notIndexedWords;			  // Words that are not indexed in the dictionary
+	int notIndexedWords_size = _notIndexedWords.size();
+	std::cout << "saving not indexed visual word size: " << notIndexedWords_size << std::endl;
+	int notindexed_temp;
+	outfile->write(reinterpret_cast<char *>(&notIndexedWords_size), sizeof(int));
+	for(std::set<int>::iterator iter=_notIndexedWords.begin(); iter!=_notIndexedWords.end(); ++iter)
+	{
+		notindexed_temp = (*iter);
+		outfile->write(reinterpret_cast<char*> (&notindexed_temp),sizeof(int));
+	}
+
 	// std::set<int> _removedIndexedWords;		  // Words not anymore in the dictionary but still indexed in the dictionary
+	int removedIndexedWords_size = _removedIndexedWords.size();
+	std::cout << "saving removedIndexedWords size: " << removedIndexedWords_size << std::endl;
+	int removed_temp;
+	outfile->write(reinterpret_cast<char *>(&removedIndexedWords_size), sizeof(int));
+	for(std::set<int>::iterator iter=_removedIndexedWords.begin(); iter!=_removedIndexedWords.end(); ++iter)
+	{
+		removed_temp = (*iter);
+		outfile->write(reinterpret_cast<char*> (&removed_temp),sizeof(int));
+	}
 
 	outfile->close();
 
 	//check data
-	infile.open("vwdictionary.dat", std::ios::in | std::ios::binary);
-	infile.read(reinterpret_cast<char*> (&visualword_num),sizeof(int));
-	std::cout << "test data: " << visualword_num << std::endl;
-	infile.close();
+	// infile.open("vwdictionary.dat", std::ios::in | std::ios::binary);
+	// infile.read(reinterpret_cast<char*> (&visualword_num),sizeof(int));
+	// std::cout << "test data: " << visualword_num << std::endl;
+	// infile.close();
 }
 
 void VWDictionary::load() {
@@ -1664,15 +1696,16 @@ void VWDictionary::load() {
 	_visualWords.clear();
 	int visualword_size;
 	VisualWord* v;
-	// int id;
+	int id;
 	infile->read(reinterpret_cast<char *>(&visualword_size), sizeof(int));  //read in the number of visual words
 	// std::cout << "restored visualword_size: " << visualword_size << std::endl;
 	for(int i=0; i<visualword_size; i++) {
 		cv::Mat d;	
 		d = cv::Mat(1, 32, CV_8U);	
-		v = new VisualWord(i,d);
+		infile->read(reinterpret_cast<char *>(&id), sizeof(int));  //read in the id
+		v = new VisualWord(id,d);
 		v->load_visualword(infile);
-		_visualWords.insert(std::pair<int,VisualWord*>(i,v));
+		_visualWords.insert(std::pair<int,VisualWord*>(id,v));
 	}
 	
 	infile->read(reinterpret_cast<char *> (&_incrementalDictionary),sizeof(bool)); //_incrementalDictionary
@@ -1688,7 +1721,7 @@ void VWDictionary::load() {
 	std::cout << "restored _byteToFloat: " << _byteToFloat << std::endl;
 
 	infile->read(reinterpret_cast<char *> (&_nndrRatio),sizeof(float)); //_nndrRatio
-	std::cout << "restored _nndrRatio: " << _nndrRatio << std::endl;
+	std::cout << "restored _nndrRatio : " << _nndrRatio << std::endl;
 
 	char temp_string[100];
 	int dictionarypath_length;
@@ -1699,7 +1732,7 @@ void VWDictionary::load() {
 
 	int newdictionarypath_length;
 	infile->read(reinterpret_cast<char *> (&newdictionarypath_length),sizeof(int)); //length of the new dictionary path
-	infile->read(temp_string,newdictionarypath_length); //_dictionaryPath
+	infile->read(temp_string,newdictionarypath_length); //_newDictionaryPath
 	temp_string[newdictionarypath_length] = 0;
 	_newDictionaryPath = temp_string;
 
@@ -1718,6 +1751,7 @@ void VWDictionary::load() {
 	std::cout << "restored _strategy: " << _strategy << std::endl;
 
 	//std::map<int, int> _mapIndexId;
+	_mapIndexId.clear();
 	int tempa, tempb;
 	int mapIndexId_size;
 	infile->read(reinterpret_cast<char *>(&mapIndexId_size), sizeof(int));
@@ -1729,6 +1763,7 @@ void VWDictionary::load() {
 	}
 
 	// std::map<int, int> _mapIdIndex;
+	_mapIdIndex.clear();
 	int mapIdIndex_size;
 	infile->read(reinterpret_cast<char *>(&mapIdIndex_size), sizeof(int));
 	for(int i=0; i<mapIdIndex_size; i++)
@@ -1736,6 +1771,42 @@ void VWDictionary::load() {
 		infile->read(reinterpret_cast<char*> (&tempa),sizeof(int));
 		infile->read(reinterpret_cast<char*> (&tempb),sizeof(int));
 		_mapIdIndex.insert(std::pair<int,int>(tempa,tempb));
+	}
+
+	// std::map<int, VisualWord *> _unusedWords; //<id,VisualWord*>, note that these words stay in _visualWords
+	_unusedWords.clear();
+	int unusedwords_size;
+	infile->read(reinterpret_cast<char *>(&unusedwords_size), sizeof(int));  //read in the number of visual words
+	std::cout << "restored unused word size: " << unusedwords_size << std::endl;
+	for(int i=0; i<unusedwords_size; i++) {
+		cv::Mat d;	
+		d = cv::Mat(1, 32, CV_8U);	
+		infile->read(reinterpret_cast<char *>(&id), sizeof(int));  //read in the id
+		v = new VisualWord(id,d);
+		v->load_visualword(infile);
+		_unusedWords.insert(std::pair<int,VisualWord*>(id,v));
+	}
+
+	// std::set<int> _notIndexedWords;			  // Words that are not indexed in the dictionary
+	_notIndexedWords.clear();
+	int notIndexedWords_size;
+	infile->read(reinterpret_cast<char *>(&notIndexedWords_size), sizeof(int));
+	std::cout << "restored notIndexed size: " << notIndexedWords_size << std::endl;
+	for(int i=0; i<notIndexedWords_size; i++)
+	{
+		infile->read(reinterpret_cast<char*> (&tempa),sizeof(int));
+		_notIndexedWords.insert(tempa);
+	}
+
+	// std::set<int> _removedIndexedWords;		  // Words not anymore in the dictionary but still indexed in the dictionary
+	_removedIndexedWords.clear();
+	int removedIndexedWords_size;
+	infile->read(reinterpret_cast<char *>(&removedIndexedWords_size), sizeof(int));
+	std::cout << "restored removeIndexed size: " << removedIndexedWords_size << std::endl;
+	for(int i=0; i<removedIndexedWords_size; i++)
+	{
+		infile->read(reinterpret_cast<char*> (&tempa),sizeof(int));
+		_removedIndexedWords.insert(tempa);
 	}
 
 	infile->close();
