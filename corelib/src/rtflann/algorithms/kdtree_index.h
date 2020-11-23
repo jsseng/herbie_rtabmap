@@ -37,6 +37,9 @@
 #include <cstring>
 #include <stdarg.h>
 #include <cmath>
+#include <vector>
+#include <fstream>
+#include <sys/mman.h>
 
 #include "rtflann/general.h"
 #include "rtflann/algorithms/nn_index.h"
@@ -51,6 +54,7 @@
 
 using std::cout;
 using std::endl;
+using std::vector;
 
 namespace rtflann
 {
@@ -98,6 +102,7 @@ private:
 		 * Point data
 		 */
 		ElementType* point;
+        int point_num;
 		/**
 		* The child nodes.
 		*/
@@ -251,7 +256,7 @@ public:
     	}
     	for (size_t i=0;i<tree_roots_.size();++i) {
     		if (Archive::is_loading::value) {
-    			tree_roots_[i] = new(pool_) Node();
+    			tree_roots_[i] = new(this->pool_) Node();
     		}
     		ar & *tree_roots_[i];
     	}
@@ -283,7 +288,7 @@ public:
      */
     int usedMemory() const
     {
-        return int(pool_.usedMemory+pool_.wastedMemory+size_*sizeof(int));  // pool memory and vind array memory
+        return int(this->pool_.usedMemory+this->pool_.wastedMemory+size_*sizeof(int));  // pool memory and vind array memory
     }
 
     /**
@@ -315,53 +320,6 @@ public:
         	else {
         		getNeighbors<false>(result, vec, maxChecks, epsError);
         	}
-        }
-    }
-
-    virtual void debug_index() {
-        std::cout << "------------------------------" << std::endl;
-        print_params(index_params_);
-        std::cout << "------------------------------" << std::endl;
-
-        std::cout << "number of flann datapoints: " << size_ << std::endl;
-        std::cout << "size of one flann datapoint: " << veclen_ << std::endl;
-        std::cout << "size of ids_: " << ids_.size() << std::endl;
-        std::cout << "size of points_: " << points_.size() << std::endl;
-        std::cout << "number of trees: " << trees_ << std::endl;
-        std::cout << "number of tree roots: " << tree_roots_.size() << std::endl;
-        
-        int tree_root_counter = 0;
-        for (auto it = begin (tree_roots_); it != end (tree_roots_); ++it) {
-            std::cout << "tree root: " << tree_root_counter << std::endl;
-            std::cout << std::addressof(*it) << std::endl; //print the address of tree root
-            std::cout << (*it)->divfeat << std::endl; //print the dividing dimension of the node
-		    float point1 = (*it)->divval;
-            std::cout << point1 << std::endl; //print the threshold value
-                
-            //In a kd tree, only the leaf nodes contain data.
-            //The non-leaf nodes contain a dimension and threshold value (they do not contain data).
-            int depth = 0;
-            auto root = (*it);
-            while (!(root->child1 == NULL && root->child2 == NULL)) { //traverse left until reaching a leaf node
-                if (root->child1 != NULL) {
-                    root = root->child1;
-                    depth++;
-                } else if (root->child2 != NULL) {
-                    root = root->child2;
-                    depth++;
-                }
-            }
-            std::cout << "tree depth: " << depth << std::endl;
-                
-            //print out the ORB descriptor (a 256-bit bit string)
-            float* r = root->point;
-            for (unsigned int i=0;i<veclen_;i++) {
-                std::cout << *r; 
-                r++;
-            }
-            std::cout << std::endl;
-
-            tree_root_counter++;
         }
     }
 
@@ -742,7 +700,7 @@ protected:
     		// using placement new, so call destructor explicitly
     		if (tree_roots_[i]!=NULL) tree_roots_[i]->~Node();
     	}
-    	pool_.free();
+    	this->pool_.free();
     }
 
 
@@ -750,11 +708,12 @@ private:
 
     void copyTree(NodePtr& dst, const NodePtr& src)
     {
-    	dst = new(pool_) Node();
+    	dst = new(this->pool_) Node();
     	dst->divfeat = src->divfeat;
     	dst->divval = src->divval;
     	if (src->child1==NULL && src->child2==NULL) {
     		dst->point = points_[dst->divfeat];
+            dst->point_num = dst->divfeat;
     		dst->child1 = NULL;
     		dst->child2 = NULL;
     	}
@@ -775,13 +734,14 @@ private:
      */
     NodePtr divideTree(int* ind, int count)
     {
-        NodePtr node = new(pool_) Node(); // allocate memory
+        NodePtr node = new(this->pool_) Node(); // allocate memory
 
         /* If too few exemplars remain, then make this a leaf node. */
         if (count == 1) {
             node->child1 = node->child2 = NULL;    /* Mark as leaf node. */
             node->divfeat = *ind;    /* Store index of this vec. */
             node->point = points_[*ind];
+            node->point_num = *ind;
         }
         else {
             int idx;
@@ -1088,6 +1048,9 @@ private:
     void addPointToTree(NodePtr node, int ind)
     {
         ElementType* point = points_[ind];
+        // std::cout << "pointer size: " << (points_[1]) - (points_[0]) << std::endl;
+        // std::cout << "pointer 0: " << (points_[0]) << std::endl;
+        // std::cout << "pointer 1: " << (points_[1]) << std::endl;
         
         if ((node->child1==NULL) && (node->child2==NULL)) {
             ElementType* leaf_point = node->point;
@@ -1100,22 +1063,26 @@ private:
                     div_feat = i;
                 }
             }
-            NodePtr left = new(pool_) Node();
+            NodePtr left = new(this->pool_) Node();
             left->child1 = left->child2 = NULL;
-            NodePtr right = new(pool_) Node();
+            NodePtr right = new(this->pool_) Node();
             right->child1 = right->child2 = NULL;
 
             if (point[div_feat]<leaf_point[div_feat]) {
                 left->divfeat = ind;
                 left->point = point;
+                left->point_num = ind;
                 right->divfeat = node->divfeat;
                 right->point = node->point;
+                right->point_num = node->point_num;
             }
             else {
                 left->divfeat = node->divfeat;
                 left->point = node->point;
+                left->point_num = node->point_num;
                 right->divfeat = ind;
                 right->point = point;
+                right->point_num = ind;
             }
             node->divfeat = div_feat;
             node->divval = (point[div_feat]+leaf_point[div_feat])/2;
@@ -1131,13 +1098,156 @@ private:
             }
         }
     }
+
+    virtual void debug_index() {
+        std::cout << "------------------------------" << std::endl;
+        print_params(index_params_);
+        std::cout << "------------------------------" << std::endl;
+
+        std::cout << "number of flann datapoints: " << this->size_ << std::endl;
+        std::cout << "size of one flann datapoint: " << this->veclen_ << std::endl;
+        std::cout << "removed_count_: " << this->removed_count_ << std::endl;
+        std::cout << "data_ptr_: " << this->data_ptr_ << std::endl;
+        std::cout << "size of ids_: " << ids_.size() << std::endl;
+        std::cout << "size of points_: " << points_.size() << std::endl;
+        std::cout << "number of trees: " << trees_ << std::endl;
+        std::cout << "number of tree roots: " << tree_roots_.size() << std::endl;
+        
+        int tree_root_counter = 0;
+        for (auto it = begin (tree_roots_); it != end (tree_roots_); ++it) {
+            std::cout << "tree root: " << tree_root_counter << std::endl;
+            std::cout << std::addressof(*it) << std::endl; //print the address of tree root
+            std::cout << (*it)->divfeat << std::endl; //print the dividing dimension of the node
+		    float point1 = (*it)->divval;
+            std::cout << point1 << std::endl; //print the threshold value
+                
+            //In a kd tree, only the leaf nodes contain data.
+            //The non-leaf nodes contain a dimension and threshold value (they do not contain data).
+            int depth = 0;
+            auto root = (*it);
+            while (!(root->child1 == NULL && root->child2 == NULL)) { //traverse left until reaching a leaf node
+                if (root->child1 != NULL) {
+                    root = root->child1;
+                    depth++;
+                } else if (root->child2 != NULL) {
+                    root = root->child2;
+                    depth++;
+                }
+            }
+            std::cout << "tree depth: " << depth << std::endl;
+                
+            //print out the ORB descriptor (a 256-bit bit string)
+            float* r = root->point;
+            for (unsigned int i=0;i<veclen_;i++) {
+                std::cout << *r; 
+                r++;
+            }
+            std::cout << std::endl;
+
+            tree_root_counter++;
+        }
+    }
+
+    int find_element(ElementType* e) {
+        return -1;
+    }
+
+    virtual void save_index(std::ofstream *outfile) 
+    {
+        //write out all the visual words to a file
+        int point_size = points_.size();
+        outfile->write(reinterpret_cast<char *>(&point_size), sizeof(int));
+
+        for (unsigned int i=0; i<points_.size(); i++) {
+            float* temp_ptr = (float*) points_.at(i);
+            for (unsigned int j=0; j<256; j++) {
+                float val = temp_ptr[j];
+                outfile->write(reinterpret_cast<char *>(&val), sizeof(float));
+            }
+        }
+
+        std::list<Node*> tree_nodes;
+        //in-order tree traversal
+        Node* root;
+        root = tree_roots_[1];
+        int counter = 0;
+
+        while (root != NULL || tree_nodes.size() != 0)
+        {
+            // Find the leftmost node
+            while (root != NULL)
+            {
+                tree_nodes.push_front(root); //inorder.push(root)
+                root = root->child1; //root = root.left
+            }
+
+            //root = inorder.peek();
+            
+            root = tree_nodes.front();
+            tree_nodes.pop_front(); //onorder.pop();
+            if (root->child2 == NULL) {
+                //this is a leaf
+                counter++;
+                //std::cout << "vw number: " << root->point_num << std::endl;
+            }
+
+            root = root->child2; //root = root.right;
+
+        }
+        std::cout << "leaf counter: " << counter << std::endl;
+
+        // ElementType* temp_element;
+        // float temp_float;
+        // for (unsigned int i=0; i<points_.size(); i++){
+        //     temp_element = points_.at(i);
+        // }
+
+        // auto it = points_.begin();
+        // it = find(points_.begin(), points_.end(), (ElementType*)30);
+        // if (it != points_.end())
+        //     std::cout << "Element found in myvector: " << *it << '\n';
+        // else
+        //     std::cout << "Element not found in myvector\n";
+    }
+
+    virtual void load_index(std::ifstream *infile)
+    {
+        auto t1 = std::chrono::high_resolution_clock::now();
+
+        int *addr;
+        unsigned long long int starting_addr = 0x6ffebb6f6000;
+        int length = 900000000;
+        addr = (int *)mmap((void *)starting_addr, length, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+        if (addr == MAP_FAILED)
+        {
+            std::cout << "Error" << std::endl;
+            exit(EXIT_FAILURE);
+        } else {
+            std::cout << "Successful mapping to: " << addr << std::endl;
+        }
+
+        //write out all the visual words to a file
+        int point_size;
+        infile->read(reinterpret_cast<char *>(&point_size), sizeof(int));
+
+        float* data_ptr = (float*) starting_addr;
+        for (int i=0; i<point_size; i++) {
+            infile->read(reinterpret_cast<char *>(data_ptr), 256 * sizeof(float));
+            data_ptr += 256;
+        }
+
+        auto t2 = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double, std::milli> fp_ms = t2 - t1;
+        std::cout << "flann index load time in milliseconds: " << fp_ms.count() << std::endl;
+    }
+
 private:
     void swap(KDTreeIndex& other)
     {
     	BaseClass::swap(other);
     	std::swap(trees_, other.trees_);
     	std::swap(tree_roots_, other.tree_roots_);
-    	std::swap(pool_, other.pool_);
+    	std::swap(this->pool_, other.pool_);
     }
 
 private:
@@ -1181,7 +1291,7 @@ private:
      * than allocating memory directly when there is a large
      * number small of memory allocations.
      */
-    PooledAllocator pool_;
+    //PooledAllocator pool_;
 
     USING_BASECLASS_SYMBOLS
 };   // class KDTreeIndex

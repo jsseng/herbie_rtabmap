@@ -1560,7 +1560,7 @@ void VWDictionary::debug()
 	std::cout << "VWDictionary total active references: " << getTotalActiveReferences() << std::endl;
 	// std::cout << "_vwd: " << test1 << std::endl;
 
-	//_flannIndex->debug();
+	_flannIndex->debug();
 	std::cout << "_mapIndexId: " << _mapIndexId.size() << std::endl;
 	std::cout << "_mapIndexId: " << _mapIdIndex.size() << std::endl;
 	std::cout << "_unusedWords: " << _unusedWords.size() << std::endl;

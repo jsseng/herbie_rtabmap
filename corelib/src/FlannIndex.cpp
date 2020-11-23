@@ -84,6 +84,8 @@ void FlannIndex::debug()
 {
 	std::cout << "flann size: " << ((const rtflann::Index<rtflann::L1<float> >*)index_)->size() << std::endl;
 	((rtflann::Index<rtflann::L1<float> >*)index_)->debug();
+	std::cout << "size of addedDescriptors_: " << addedDescriptors_.size() << std::endl;
+	std::cout << "size of removedIndexes_: " << removedIndexes_.size() << std::endl;
 }
 
 unsigned int FlannIndex::indexedFeatures() const

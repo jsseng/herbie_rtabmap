@@ -32,6 +32,7 @@
 #define RTABMAP_FLANN_NNINDEX_H
 
 #include <vector>
+#include <fstream>
 
 #include "rtflann/general.h"
 #include "rtflann/util/matrix.h"
@@ -39,6 +40,7 @@
 #include "rtflann/util/result_set.h"
 #include "rtflann/util/dynamic_bitset.h"
 #include "rtflann/util/saving.h"
+#include "rtflann/util/allocator.h"
 
 namespace rtflann
 {
@@ -79,6 +81,8 @@ public:
     typedef typename Distance::ResultType DistanceType;
 
 	virtual void debug_index() {}
+	virtual void save_index(std::ofstream *outfile) {}
+	virtual void load_index(std::ifstream *infile) {}
 
 	NNIndex(Distance d) : distance_(d), last_id_(0), size_(0), size_at_build_(0), veclen_(0),
 			removed_(false), removed_count_(0), data_ptr_(NULL)
@@ -105,6 +109,7 @@ public:
 		data_ptr_(NULL)
 	{
 		if (other.data_ptr_) {
+			std::cout << "creating new index: " << size_ << "," << veclen_ << std::endl;
 			data_ptr_ = new ElementType[size_*veclen_];
 			std::copy(other.data_ptr_, other.data_ptr_+size_*veclen_, data_ptr_);
 			for (size_t i=0;i<size_;++i) {
@@ -894,6 +899,7 @@ protected:
      */
     ElementType* data_ptr_;
 
+    PooledAllocator pool_;
 
 };
 
