@@ -68,6 +68,7 @@ CameraRealSense2::CameraRealSense2(
 	depthToRGBExtrinsics_(new rs2_extrinsics),
 	lastImuStamp_(0.0),
 	clockSyncWarningShown_(false),
+	imuGlobalSyncWarningShown_(false),
 	emitterEnabled_(true),
 	ir_(false),
 	irDepth_(true),
@@ -76,6 +77,7 @@ CameraRealSense2::CameraRealSense2(
 	cameraWidth_(640),
 	cameraHeight_(480),
 	cameraFps_(30),
+	globalTimeSync_(true),
 	publishInterIMU_(false),
 	dualMode_(false),
 	closing_(false),
@@ -230,7 +232,7 @@ void CameraRealSense2::getPoseAndIMU(
 		Transform & pose,
 		unsigned int & poseConfidence,
 		IMU & imu,
-		int maxWaitTimeMs) const
+		int maxWaitTimeMs)
 {
 	pose.setNull();
 	imu = IMU();
@@ -297,15 +299,18 @@ void CameraRealSense2::getPoseAndIMU(
 	cv::Vec3d acc;
 	{
 		imuMutex_.lock();
-		int waitTry = 0;
-		while(maxWaitTimeMs > 0 && accBuffer_.rbegin()->first < stamp && waitTry < maxWaitTimeMs)
+		if(globalTimeSync_)
 		{
-			imuMutex_.unlock();
-			++waitTry;
-			uSleep(1);
-			imuMutex_.lock();
+			int waitTry = 0;
+			while(maxWaitTimeMs > 0 && accBuffer_.rbegin()->first < stamp && waitTry < maxWaitTimeMs)
+			{
+				imuMutex_.unlock();
+				++waitTry;
+				uSleep(1);
+				imuMutex_.lock();
+			}
 		}
-		if(accBuffer_.rbegin()->first < stamp)
+		if(globalTimeSync_ && accBuffer_.rbegin()->first < stamp)
 		{
 			if(maxWaitTimeMs>0)
 			{
@@ -341,16 +346,34 @@ void CameraRealSense2::getPoseAndIMU(
 			}
 			else
 			{
-				if(stamp < iterA->first)
+				if(!imuGlobalSyncWarningShown_)
 				{
-					UWARN("Could not find acc data to interpolate at image time %f (earliest is %f). Are sensors synchronized?", stamp, iterA->first);
+					if(stamp < iterA->first)
+					{
+						UWARN("Could not find acc data to interpolate at image time %f (earliest is %f). Are sensors synchronized?", stamp, iterA->first);
+					}
+					else
+					{
+						UWARN("Could not find acc data to interpolate at image time %f (between %f and %f). Are sensors synchronized?", stamp, iterA->first, iterB->first);
+					}
+				}
+				if(!globalTimeSync_)
+				{
+					if(!imuGlobalSyncWarningShown_)
+					{
+						UWARN("As globalTimeSync option is off, the received gyro and accelerometer will be re-stamped with image time. This message is only shown once.");
+						imuGlobalSyncWarningShown_ = true;
+					}
+					std::map<double, cv::Vec3f>::const_reverse_iterator iterC = accBuffer_.rbegin();
+					acc[0] = iterC->second[0];
+					acc[1] = iterC->second[1];
+					acc[2] = iterC->second[2];
 				}
 				else
 				{
-					UWARN("Could not find acc data to interpolate at image time %f (between %f and %f). Are sensors synchronized?", stamp, iterA->first, iterB->first);
+					imuMutex_.unlock();
+					return;
 				}
-				imuMutex_.unlock();
-				return;
 			}
 		}
 		imuMutex_.unlock();
@@ -360,15 +383,18 @@ void CameraRealSense2::getPoseAndIMU(
 	cv::Vec3d gyro;
 	{
 		imuMutex_.lock();
-		int waitTry = 0;
-		while(maxWaitTimeMs>0 && gyroBuffer_.rbegin()->first < stamp && waitTry < maxWaitTimeMs)
+		if(globalTimeSync_)
 		{
-			imuMutex_.unlock();
-			++waitTry;
-			uSleep(1);
-			imuMutex_.lock();
+			int waitTry = 0;
+			while(maxWaitTimeMs>0 && gyroBuffer_.rbegin()->first < stamp && waitTry < maxWaitTimeMs)
+			{
+				imuMutex_.unlock();
+				++waitTry;
+				uSleep(1);
+				imuMutex_.lock();
+			}
 		}
-		if(gyroBuffer_.rbegin()->first < stamp)
+		if(globalTimeSync_ && gyroBuffer_.rbegin()->first < stamp)
 		{
 			if(maxWaitTimeMs>0)
 			{
@@ -404,16 +430,34 @@ void CameraRealSense2::getPoseAndIMU(
 			}
 			else
 			{
-				if(stamp < iterA->first)
+				if(!imuGlobalSyncWarningShown_)
 				{
-					UWARN("Could not find gyro data to interpolate at image time %f (earliest is %f). Are sensors synchronized?", stamp, iterA->first);
+					if(stamp < iterA->first)
+					{
+						UWARN("Could not find gyro data to interpolate at image time %f (earliest is %f). Are sensors synchronized?", stamp, iterA->first);
+					}
+					else
+					{
+						UWARN("Could not find gyro data to interpolate at image time %f (between %f and %f). Are sensors synchronized?", stamp, iterA->first, iterB->first);
+					}
+				}
+				if(!globalTimeSync_)
+				{
+					if(!imuGlobalSyncWarningShown_)
+					{
+						UWARN("As globalTimeSync option is off, the latest received gyro and accelerometer will be re-stamped with image time. This message is only shown once.");
+						imuGlobalSyncWarningShown_ = true;
+					}
+					std::map<double, cv::Vec3f>::const_reverse_iterator iterC = gyroBuffer_.rbegin();
+					gyro[0] = iterC->second[0];
+					gyro[1] = iterC->second[1];
+					gyro[2] = iterC->second[2];
 				}
 				else
 				{
-					UWARN("Could not find gyro data to interpolate at image time %f (between %f and %f). Are sensors synchronized?", stamp, iterA->first, iterB->first);
+					imuMutex_.unlock();
+					return;
 				}
-				imuMutex_.unlock();
-				return;
 			}
 		}
 		imuMutex_.unlock();
@@ -436,6 +480,7 @@ bool CameraRealSense2::init(const std::string & calibrationFolder, const std::st
 		dev_[i] = 0;
 	}
 	clockSyncWarningShown_ = false;
+	imuGlobalSyncWarningShown_ = false;
 
 	auto list = ctx_->query_devices();
 	if (0 == list.size())
@@ -656,8 +701,8 @@ bool CameraRealSense2::init(const std::string & calibrationFolder, const std::st
 			auto video_profile = profile.as<rs2::video_stream_profile>();
 			if(!stereo)
 			{
-				if(isL500_
-					 && (video_profile.width()  == 640 &&
+				if(isL500_ &&
+						(video_profile.width()  == 640 &&
 						 video_profile.height() == 480 &&
 						 video_profile.fps()    == 30))
 				{
@@ -684,9 +729,10 @@ bool CameraRealSense2::init(const std::string & calibrationFolder, const std::st
 					}
 				}
 				//D400 series:
-				else if (video_profile.width()  == cameraWidth_ &&
-					video_profile.height() == cameraHeight_ &&
-					video_profile.fps()    == cameraFps_)
+				else if (!isL500_ &&
+						(video_profile.width()  == cameraWidth_ &&
+						 video_profile.height() == cameraHeight_ &&
+						 video_profile.fps()    == cameraFps_))
 				{
 					auto intrinsic = video_profile.get_intrinsics();
 
@@ -1006,7 +1052,7 @@ bool CameraRealSense2::init(const std::string & calibrationFolder, const std::st
 						 video_profile.stream_name().c_str(),
 						 video_profile.stream_type());
 			 }
-			 if(sensors[i].supports(rs2_option::RS2_OPTION_GLOBAL_TIME_ENABLED))
+			 if(globalTimeSync_ && sensors[i].supports(rs2_option::RS2_OPTION_GLOBAL_TIME_ENABLED))
 			 {
 				 float value = sensors[i].get_option(rs2_option::RS2_OPTION_GLOBAL_TIME_ENABLED);
 				 UINFO("Set RS2_OPTION_GLOBAL_TIME_ENABLED=1 (was %f) for sensor %d", value, (int)i);
@@ -1087,6 +1133,13 @@ void CameraRealSense2::setResolution(int width, int height, int fps)
 #endif
 }
 
+void CameraRealSense2::setGlobalTimeSync(bool enabled)
+{
+#ifdef RTABMAP_REALSENSE2
+	globalTimeSync_ = enabled;
+#endif
+}
+
 void CameraRealSense2::publishInterIMU(bool enabled)
 {
 #ifdef RTABMAP_REALSENSE2
@@ -1142,7 +1195,7 @@ SensorData CameraRealSense2::captureImage(CameraInfo * info)
 		auto frameset = syncer_->wait_for_frames(5000);
 		UTimer timer;
 		int desiredFramesetSize = 2;
-		if(isL500_)
+		if(isL500_ && globalTimeSync_)
 			desiredFramesetSize = 3;
 		while ((int)frameset.size() != desiredFramesetSize && timer.elapsed() < 2.0)
 		{

@@ -845,6 +845,7 @@ bool DatabaseViewer::openDatabase(const QString & path)
 				}
 
 				updateIds();
+				this->setWindowTitle("RTAB-Map Database Viewer - " + path + "[*]");
 				return true;
 			}
 		}
@@ -867,6 +868,7 @@ bool DatabaseViewer::openDatabase(const QString & path)
 
 bool DatabaseViewer::closeDatabase()
 {
+	this->setWindowTitle("RTAB-Map Database Viewer[*]");
 	if(dbDriver_)
 	{
 		if(linksAdded_.size() || linksRefined_.size() || linksRemoved_.size())
@@ -4061,14 +4063,21 @@ void DatabaseViewer::refineAllLinks(const QList<Link> & links)
 
 void DatabaseViewer::resetAllChanges()
 {
-	linksAdded_.clear();
-	linksRefined_.clear();
-	linksRemoved_.clear();
-	generatedLocalMaps_.clear();
-	generatedLocalMapsInfo_.clear();
-	modifiedLaserScans_.clear();
-	updateLoopClosuresSlider();
-	this->updateGraphView();
+	if(QMessageBox::question(this,
+			tr("Reset all changes"),
+			tr("You are about to reset all changes you've made so far, do you want to continue?"),
+			QMessageBox::Yes | QMessageBox::No,
+			QMessageBox::No) == QMessageBox::Yes)
+	{
+		linksAdded_.clear();
+		linksRefined_.clear();
+		linksRemoved_.clear();
+		generatedLocalMaps_.clear();
+		generatedLocalMapsInfo_.clear();
+		modifiedLaserScans_.clear();
+		updateLoopClosuresSlider();
+		this->updateGraphView();
+	}
 }
 
 void DatabaseViewer::sliderAValueChanged(int value)
@@ -5334,8 +5343,8 @@ void DatabaseViewer::editConstraint()
 				}
 				if(updated)
 				{
-					updateConstraintView();
 					this->updateGraphView();
+					updateConstraintView();
 				}
 			}
 		}
@@ -5366,8 +5375,8 @@ void DatabaseViewer::editConstraint()
 					newLink = newLink.inverse();
 				}
 				linksAdded_.insert(std::make_pair(newLink.from(), newLink));
-				updateLoopClosuresSlider(from, to);
 				this->updateGraphView();
+				updateLoopClosuresSlider(from, to);
 			}
 		}
 	}
@@ -6998,7 +7007,7 @@ void DatabaseViewer::refineConstraint(int from, int to, bool silent)
 			}
 		}
 	}
-	if(scanPoses.size())
+	if(scanPoses.size()>1)
 	{
 		//optimize the path's poses locally
 		Optimizer * optimizer = Optimizer::create(ui_->parameters_toolbox->getParameters());
@@ -7056,6 +7065,8 @@ void DatabaseViewer::refineConstraint(int from, int to, bool silent)
 		pcl::PointCloud<pcl::PointNormal>::Ptr assembledToNormalClouds(new pcl::PointCloud<pcl::PointNormal>);
 		pcl::PointCloud<pcl::PointXYZI>::Ptr assembledToIClouds(new pcl::PointCloud<pcl::PointXYZI>);
 		pcl::PointCloud<pcl::PointXYZINormal>::Ptr assembledToNormalIClouds(new pcl::PointCloud<pcl::PointXYZINormal>);
+		pcl::PointCloud<pcl::PointXYZRGB>::Ptr assembledToRGBClouds(new pcl::PointCloud<pcl::PointXYZRGB>);
+		pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr assembledToNormalRGBClouds(new pcl::PointCloud<pcl::PointXYZRGBNormal>);
 		for(std::map<int, Transform>::const_iterator iter = filteredScanPoses.begin(); iter!=filteredScanPoses.end(); ++iter)
 		{
 			if(iter->first != currentLink.from())
@@ -7078,6 +7089,19 @@ void DatabaseViewer::refineConstraint(int from, int to, bool silent)
 							else
 							{
 								*assembledToIClouds += *util3d::laserScanToPointCloudI(scan,
+										toPoseInv * iter->second * scan.localTransform());
+							}
+						}
+						else if(scan.hasRGB())
+						{
+							if(scan.hasNormals())
+							{
+								*assembledToNormalRGBClouds += *util3d::laserScanToPointCloudRGBNormal(scan,
+										toPoseInv * iter->second * scan.localTransform());
+							}
+							else
+							{
+								*assembledToRGBClouds += *util3d::laserScanToPointCloudRGB(scan,
 										toPoseInv * iter->second * scan.localTransform());
 							}
 						}
@@ -7128,6 +7152,16 @@ void DatabaseViewer::refineConstraint(int from, int to, bool silent)
 		else if(assembledToIClouds->size())
 		{
 			assembledScan = fromScan.is2d()?util3d::laserScan2dFromPointCloud(*assembledToIClouds):util3d::laserScanFromPointCloud(*assembledToIClouds);
+		}
+		else if(assembledToNormalRGBClouds->size())
+		{
+			UASSERT(!fromScan.is2d());
+			assembledScan = util3d::laserScanFromPointCloud(*assembledToNormalRGBClouds);
+		}
+		else if(assembledToRGBClouds->size())
+		{
+			UASSERT(!fromScan.is2d());
+			assembledScan = util3d::laserScanFromPointCloud(*assembledToRGBClouds);
 		}
 		else
 		{
@@ -7778,16 +7812,7 @@ void DatabaseViewer::resetConstraint()
 		this->updateGraphView();
 	}
 
-	iter = rtabmap::graph::findLink(links_, from, to);
-	if(iter != links_.end())
-	{
-		this->updateConstraintView(iter->second);
-	}
-	iter = rtabmap::graph::findLink(linksAdded_, from, to);
-	if(iter != linksAdded_.end())
-	{
-		this->updateConstraintView(iter->second);
-	}
+	updateConstraintView();
 }
 
 void DatabaseViewer::rejectConstraint()
