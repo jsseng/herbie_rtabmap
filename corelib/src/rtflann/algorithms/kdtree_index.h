@@ -1137,14 +1137,6 @@ private:
             }
             std::cout << "tree depth: " << depth << std::endl;
                 
-            //print out the ORB descriptor (a 256-bit bit string)
-            // float* r = root->point;
-            // for (unsigned int i=0;i<veclen_;i++) {
-            //     std::cout << *r; 
-            //     r++;
-            // }
-            // std::cout << std::endl;
-
             tree_root_counter++;
         }
     }
@@ -1152,7 +1144,7 @@ private:
     /////////////////////////////////////////////////////////////
     //check_trees() - this function is used to validate that the
     //flattened tree matches the original tree
-    void check_trees(char* ptr) {
+    void check_trees(int tree_root_num, char* ptr) {
         for(int i=0; i<2; i++) {
             //in-order tree traversal
             std::list<Node *> tree_nodes;
@@ -1161,7 +1153,7 @@ private:
 
             if (i==0) {
                 outfile->open("ref_tree.dat", std::ios::out | std::ios::binary | std::ios::trunc);
-                root = tree_roots_[1];
+                root = tree_roots_[tree_root_num];
             } else {
                 outfile->open("test_tree.dat", std::ios::out | std::ios::binary | std::ios::trunc);
                 root = (Node*) ptr;
@@ -1202,17 +1194,10 @@ private:
 
     virtual void save_index(std::ofstream *outfile) 
     {
-        //write out all the visual words to a file
-        // int point_size = points_.size();
-        // outfile->write(reinterpret_cast<char *>(&point_size), sizeof(int));
-
-        // for (unsigned int i=0; i<points_.size(); i++) {
-        //     float* temp_ptr = (float*) points_.at(i);
-        //     for (unsigned int j=0; j<256; j++) {
-        //         float val = temp_ptr[j];
-        //         outfile->write(reinterpret_cast<char *>(&val), sizeof(float));
-        //     }
-        // }
+        //The save index file is in the following format:
+        //---------------------------------------------------------------------------------------
+        //| num visual words | visual words | num bytes tree 0 | point tree 0 root | tree 0 bytes
+        //---------------------------------------------------------------------------------------
 
         //write out the tree nodes
         char *addr;
@@ -1238,103 +1223,144 @@ private:
             }
         }
 
-        char *tree_addr_base = (char*) (addr + points_.size()*256*4);
-        char *tree_addr_cur = tree_addr_base;
-        struct Node* node_ptr;
-        
+        char *tree_addr_base = (char *)(addr + points_.size() * 256 * sizeof(float));
+        char *tree_addr_cur, *region_start;
+        tree_addr_cur = tree_addr_base;
         //map to store the mapping from the current memory address, to the in-memory address when it is loaded in again
         std::map<unsigned long long, unsigned long long> memory_addresses;
+        struct Node *node_ptr;
+        std::list<Node *> tree_nodes;
+        Node *root;
 
-        //in-order tree traversal
-        std::list<Node*> tree_nodes;
-        Node* root;
-        root = tree_roots_[1];
-        int node_counter = 0;
-        int leaf_counter = 0;
-
-        while (root != NULL || tree_nodes.size() != 0)
+        for (unsigned int tr = 0; tr<tree_roots_.size(); tr++) 
+        // for (unsigned int tr = 0; tr<1; tr++) 
         {
-            // Find the leftmost node
-            while (root != NULL)
+            //at the section beginning, store the total number of bytes for the tree (4 byte int - does not include
+            //the 8 byte pointer to the root node), then store the pointer to the root node of the tree (8 byte pointer)
+            region_start = tree_addr_base; 
+            tree_addr_base += sizeof(int) + sizeof(struct Node *); //make space to store the pointer to the root 
+            tree_addr_cur = tree_addr_base;
+            memory_addresses.clear();
+            tree_nodes.clear();
+
+            //in-order tree traversal
+            root = tree_roots_[tr];
+            int node_counter = 0;
+            int leaf_counter = 0;
+
+            while (root != NULL || tree_nodes.size() != 0)
             {
-                tree_nodes.push_front(root); //inorder.push(root)
-                root = root->child1; //root = root.left
-            }
+                // Find the leftmost node
+                while (root != NULL)
+                {
+                    tree_nodes.push_front(root); //inorder.push(root)
+                    root = root->child1;         //root = root.left
+                }
 
-            //root = inorder.peek();
-            
-            root = tree_nodes.front();
-            tree_nodes.pop_front(); //inorder.pop();
+                root = tree_nodes.front();
+                tree_nodes.pop_front(); //inorder.pop();
 
-            if (root->child1 == NULL && root->child2 == NULL) {
-                //this is a leaf
-                memory_addresses.insert(std::pair<unsigned long long,unsigned long long>((unsigned long long)root, (unsigned long long)tree_addr_cur)); 
-                node_ptr = (struct Node*) tree_addr_cur;
-                node_ptr->child1 = NULL;
-                node_ptr->child2 = NULL;
-                node_ptr->divfeat = root->divfeat;
-                node_ptr->divval = root->divval;
-                node_ptr->point_num = root->point_num;
-                node_ptr->point = (ElementType*) (starting_addr + (256*sizeof(float)*node_ptr->point_num));
-                node_ptr->pad = 0;
-                leaf_counter++;
-                tree_addr_cur += sizeof(struct Node);
-            } else {
-                //this is a non-leaf
-                // memory_addresses.insert(std::pair<unsigned long long,unsigned long long>((unsigned long long)root, (unsigned long long)tree_addr_cur)); 
-                memory_addresses[(unsigned long long)root] = (unsigned long long)tree_addr_cur; 
-                node_ptr = (struct Node*) tree_addr_cur;
-
-                if (root->child1 != NULL) {
-                    node_ptr->child1 = (Node *)memory_addresses[(unsigned long long)root->child1];
-                    memory_addresses.erase((unsigned long long)root->child1);
-                } else {
+                if (root->child1 == NULL && root->child2 == NULL)
+                {
+                    //this is a leaf
+                    memory_addresses.insert(std::pair<unsigned long long, unsigned long long>((unsigned long long)root, (unsigned long long)tree_addr_cur));
+                    node_ptr = (struct Node *)tree_addr_cur;
                     node_ptr->child1 = NULL;
-                }
-
-                if (root->child2 != NULL) {
-                    node_ptr->child2 = root->child2; //have not traversed this node yet, so insert a placeholder to child2
-                    node_ptr->pad = 1; //mark this node for fixup later
-                } else {
-                    node_ptr->child2 = NULL; 
+                    node_ptr->child2 = NULL;
+                    node_ptr->divfeat = root->divfeat;
+                    node_ptr->divval = root->divval;
+                    node_ptr->point_num = root->point_num;
+                    node_ptr->point = (ElementType *)(starting_addr + (256 * sizeof(float) * node_ptr->point_num));
                     node_ptr->pad = 0;
+                    leaf_counter++;
+                    tree_addr_cur += sizeof(struct Node);
+                }
+                else
+                {
+                    //this is a non-leaf
+                    // memory_addresses.insert(std::pair<unsigned long long,unsigned long long>((unsigned long long)root, (unsigned long long)tree_addr_cur));
+                    memory_addresses[(unsigned long long)root] = (unsigned long long)tree_addr_cur;
+                    node_ptr = (struct Node *)tree_addr_cur;
+
+                    if (root->child1 != NULL)
+                    {
+                        node_ptr->child1 = (Node *)memory_addresses[(unsigned long long)root->child1];
+                        memory_addresses.erase((unsigned long long)root->child1);
+                    }
+                    else
+                    {
+                        node_ptr->child1 = NULL;
+                    }
+
+                    if (root->child2 != NULL)
+                    {
+                        node_ptr->child2 = root->child2; //have not traversed this node yet, so insert a placeholder to child2
+                        node_ptr->pad = 1;               //mark this node for fixup later
+                    }
+                    else
+                    {
+                        node_ptr->child2 = NULL;
+                        node_ptr->pad = 0;
+                    }
+
+                    node_ptr->divfeat = root->divfeat;
+                    node_ptr->divval = root->divval;
+                    node_ptr->point_num = root->point_num;
+                    node_ptr->point = (ElementType *)NULL;
+                    node_counter++;
+                    tree_addr_cur += sizeof(struct Node);
                 }
 
-                node_ptr->divfeat = root->divfeat;
-                node_ptr->divval = root->divval;
-                node_ptr->point_num = root->point_num;
-                node_ptr->point = (ElementType*) NULL;
-                node_counter++;
-                tree_addr_cur += sizeof(struct Node);
+                root = root->child2; //root = root.right;
             }
 
-            root = root->child2; //root = root.right;
-        }
-
-        //loop pass to fix up the child2 pointers
-        for (int i=0; i<(node_counter+leaf_counter); i++) {
-            Node *n_ptr = (Node *)(tree_addr_base + i*sizeof(struct Node));
-            if (n_ptr->pad == 1) {
-                Node *new_ptr = (Node*) memory_addresses[(unsigned long long) n_ptr->child2];
-                memory_addresses.erase((unsigned long long) n_ptr->child2);
-                n_ptr->child2 = new_ptr;
-                n_ptr->pad = 0;
+            //loop pass to fix up the child2 pointers
+            for (int i = 0; i < (node_counter + leaf_counter); i++)
+            {
+                Node *n_ptr = (Node *)(tree_addr_base + i * sizeof(struct Node));
+                if (n_ptr->pad == 1)
+                {
+                    Node *new_ptr = (Node *)memory_addresses[(unsigned long long)n_ptr->child2];
+                    memory_addresses.erase((unsigned long long)n_ptr->child2);
+                    n_ptr->child2 = new_ptr;
+                    n_ptr->pad = 0;
+                }
             }
+
+            //only the root node is left in the memory addresses map
+            if (memory_addresses.size() != 1)
+            {
+                std::cout << "memory_addresses error: " << memory_addresses.size() << std::endl;
+                exit(0);
+            }
+
+            int *size_ptr = (int*) region_start;
+            *size_ptr = (node_counter + leaf_counter) * sizeof(struct Node); //store the number of bytes for the tree
+            region_start += sizeof(int);
+            unsigned long long *root_ptr = (unsigned long long *) region_start;
+            std::map<unsigned long long, unsigned long long>::iterator it = memory_addresses.begin();
+            *root_ptr = it->second; 
+
+            std::cout << "address of start of tree in memory: " << (unsigned long long)tree_addr_base << std::endl;
+            std::cout << "address of root node: " << it->second << std::endl;
+            std::cout << "address of end of tree in memory: " << (unsigned long long)tree_addr_cur << std::endl;
+            //check_trees(3, (char *)it->second);
+
+            std::cout << "nodes: " << node_counter << "  leaves: " << leaf_counter << std::endl;
+
+            tree_addr_base = tree_addr_cur;
         }
 
-        //only the root node is left in the memory addresses map
-        if (memory_addresses.size() != 1) {
-            std::cout << "memory_addresses error: " << memory_addresses.size() << std::endl;
-            exit(0);
-        }
+        int total_flann_size = (unsigned long long)tree_addr_cur - STARTING_ADDR; //include visual words and 4 trees
+        std::cout << "total flann size: " << total_flann_size << std::endl;
 
-        std::map<unsigned long long, unsigned long long>::iterator it = memory_addresses.begin(); 
-        std::cout << "address of start of tree in memory: " << (unsigned long long) tree_addr_base << std::endl;
-        std::cout << "address of root node: " << it->second << std::endl;
-        std::cout << "address of end of tree in memory: " << (unsigned long long) tree_addr_cur << std::endl;
-        check_trees((char*)it->second);
+        //write out all the visual words to a file
+        int point_size = points_.size();
+        outfile->write(reinterpret_cast<char *>(&point_size), sizeof(int));
+        outfile->write(reinterpret_cast<char *>(addr), total_flann_size);
 
-        std::cout << "nodes: " << node_counter << "  leaves: " << leaf_counter << std::endl;
+        //unmap the memory
+        munmap(addr,length);
     }
 
     ///////////////////////////////////////////////////////////////////////
@@ -1345,7 +1371,7 @@ private:
 
         int *addr;
         unsigned long long int starting_addr = STARTING_ADDR;
-        int length = 900000000;
+        int length = 1300000000;
         addr = (int *)mmap((void *)starting_addr, length, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
         if (addr == MAP_FAILED)
         {
@@ -1355,7 +1381,7 @@ private:
             std::cout << "Successful mapping to: " << addr << std::endl;
         }
 
-        //write out all the visual words to a file
+        //read in all the visual words from a file
         int point_size;
         infile->read(reinterpret_cast<char *>(&point_size), sizeof(int));
 
@@ -1363,6 +1389,20 @@ private:
         for (int i=0; i<point_size; i++) {
             infile->read(reinterpret_cast<char *>(data_ptr), 256 * sizeof(float));
             data_ptr += 256;
+        }
+
+        struct Node* root[4] = {NULL, NULL, NULL, NULL};
+        char* t_ptr = (char*) data_ptr;
+        for (int i=0; i<4; i++) { //number of trees
+            int tree_size = 0;
+            infile->read(reinterpret_cast<char *>(&tree_size), sizeof(int));
+            std::cout << "loading tree size: " << tree_size << std::endl;
+            infile->read(reinterpret_cast<char *>(&root[i]), sizeof(struct Node *));
+            std::cout << "root address: " << root[i] << std::endl;
+
+            t_ptr += sizeof(int) + sizeof(struct Node *);
+            infile->read(reinterpret_cast<char *>(t_ptr), tree_size);
+            t_ptr += tree_size;
         }
 
         auto t2 = std::chrono::high_resolution_clock::now();
