@@ -39,6 +39,7 @@
 #include <cmath>
 #include <vector>
 #include <fstream>
+#include <chrono>
 #include <sys/mman.h>
 
 #include "rtflann/general.h"
