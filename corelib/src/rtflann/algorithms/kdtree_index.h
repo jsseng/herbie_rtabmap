@@ -107,7 +107,7 @@ private:
 		* The child nodes.
 		*/
 		Node* child1, *child2;
-        int pad;
+        int fix;
 		Node(){
 			child1 = NULL;
 			child2 = NULL;
@@ -1114,31 +1114,31 @@ private:
         std::cout << "number of trees: " << trees_ << std::endl;
         std::cout << "number of tree roots: " << tree_roots_.size() << std::endl;
         
-        int tree_root_counter = 0;
-        for (auto it = begin (tree_roots_); it != end (tree_roots_); ++it) {
-            std::cout << "tree root: " << tree_root_counter << std::endl;
-            std::cout << std::addressof(*it) << std::endl; //print the address of tree root
-            std::cout << (*it)->divfeat << std::endl; //print the dividing dimension of the node
-		    float point1 = (*it)->divval;
-            std::cout << point1 << std::endl; //print the threshold value
+        // int tree_root_counter = 0;
+        // for (auto it = begin (tree_roots_); it != end (tree_roots_); ++it) {
+        //     std::cout << "tree root: " << tree_root_counter << std::endl;
+        //     std::cout << std::addressof(*it) << std::endl; //print the address of tree root
+        //     std::cout << (*it)->divfeat << std::endl; //print the dividing dimension of the node
+		//     float point1 = (*it)->divval;
+        //     std::cout << point1 << std::endl; //print the threshold value
                 
-            //In a kd tree, only the leaf nodes contain data.
-            //The non-leaf nodes contain a dimension and threshold value (they do not contain data).
-            int depth = 0;
-            auto root = (*it);
-            while (!(root->child1 == NULL && root->child2 == NULL)) { //traverse left until reaching a leaf node
-                if (root->child1 != NULL) {
-                    root = root->child1;
-                    depth++;
-                } else if (root->child2 != NULL) {
-                    root = root->child2;
-                    depth++;
-                }
-            }
-            std::cout << "tree depth: " << depth << std::endl;
+        //     //In a kd tree, only the leaf nodes contain data.
+        //     //The non-leaf nodes contain a dimension and threshold value (they do not contain data).
+        //     int depth = 0;
+        //     auto root = (*it);
+        //     while (!(root->child1 == NULL && root->child2 == NULL)) { //traverse left until reaching a leaf node
+        //         if (root->child1 != NULL) {
+        //             root = root->child1;
+        //             depth++;
+        //         } else if (root->child2 != NULL) {
+        //             root = root->child2;
+        //             depth++;
+        //         }
+        //     }
+        //     std::cout << "tree depth: " << depth << std::endl;
                 
-            tree_root_counter++;
-        }
+        //     tree_root_counter++;
+        // }
     }
 
     /////////////////////////////////////////////////////////////
@@ -1196,28 +1196,43 @@ private:
     {
         //The save index file is in the following format:
         //---------------------------------------------------------------------------------------
-        //| num visual words | visual words | num bytes tree 0 | point tree 0 root | tree 0 bytes
+        //| num visual words | visual words | num bytes tree 0 | pointer to tree 0 root | tree 0 bytes....
+        //| (4 bytes)        | (many bytes) | (4 byte - int)   | (8 byte - pointer)     | (many bytes)
         //---------------------------------------------------------------------------------------
+        //
+        //---------------------------------------------------------------------------------------
+        //| ....tree 0 bytes cont'd | num bytes tree 1 | pointer to tree 1 root | tree 1 bytes....
+        //| (many bytes)            | (4 byte - int)   | (8 byte - int)         | (many bytes)
+        //---------------------------------------------------------------------------------------
+        //
+        //There are 4 trees total and the root node addresses are stored in tree_roots_
 
-        //write out the tree nodes
-        char *addr;
+        //Obtain the block of contiguous memory using mmap().  Malloc() does not return memory at a requested
+        //address, but mmap() does.
+        char *addr;  //pointer to the new memory
         unsigned long long int starting_addr = STARTING_ADDR;
-        int length = 1300000000;
+        int length = 1300000000;  //1.3GB for now
         addr = (char *)mmap((void *)starting_addr, length, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
         if (addr == MAP_FAILED)
         {
-            std::cout << "Error" << std::endl;
+            std::cout << "Error obtaining memory" << std::endl;
             exit(EXIT_FAILURE);
-        } else {
-            std::cout << "Successful mapping to: " << (unsigned long long) addr << std::endl;
+        } 
+        else 
+        {
+            std::cout << "Successful memory mapping to: " << (unsigned long long) addr << std::endl;
         }
 
-        //copy the visual word data to the new memory
+        //Copy the visual word data to the new memory.  Each visual word is a binary descriptor which consists of
+        //256 floats, where each float is a binary number (0 or 1).  The visual words are copied into the new
+        //memory first and then the trees are placed after the visual words.
         float *f_ptr, *f_write;
         f_write = (float*) starting_addr;
-        for(unsigned int i=0;i<points_.size();i++) {
+        for(unsigned int i=0;i<points_.size();i++) 
+        {
             f_ptr = (float*) points_[i];
-            for (unsigned int j=0; j<256; j++) {
+            for (unsigned int j=0; j<256; j++) 
+            {
                 *f_write = f_ptr[j];
                 f_write++;
             }
@@ -1226,16 +1241,18 @@ private:
         char *tree_addr_base = (char *)(addr + points_.size() * 256 * sizeof(float));
         char *tree_addr_cur, *region_start;
         tree_addr_cur = tree_addr_base;
-        //map to store the mapping from the current memory address, to the in-memory address when it is loaded in again
+
+        //map to store the mapping from the original memory address of a node, to the new memory address when it is loaded in again
         std::map<unsigned long long, unsigned long long> memory_addresses;
         struct Node *node_ptr;
-        std::list<Node *> tree_nodes;
+        std::list<Node *> tree_nodes;  //used as a stack for in-order traversal of the tree
         Node *root;
 
-        for (unsigned int tr = 0; tr<tree_roots_.size(); tr++) 
-        // for (unsigned int tr = 0; tr<1; tr++) 
+        //This is the main loop that flattens the index trees.  The loop does an in-order traversal of 
+        //the trees and copies the nodes to the memory block obtained using mmap().
+        for (unsigned int tr = 0; tr<tree_roots_.size(); tr++)  //there are 4 trees
         {
-            //at the section beginning, store the total number of bytes for the tree (4 byte int - does not include
+            //at the memory region beginning, store the total number of bytes for the tree (4 byte int - does not include
             //the 8 byte pointer to the root node), then store the pointer to the root node of the tree (8 byte pointer)
             region_start = tree_addr_base; 
             tree_addr_base += sizeof(int) + sizeof(struct Node *); //make space to store the pointer to the root 
@@ -1271,7 +1288,7 @@ private:
                     node_ptr->divval = root->divval;
                     node_ptr->point_num = root->point_num;
                     node_ptr->point = (ElementType *)(starting_addr + (256 * sizeof(float) * node_ptr->point_num));
-                    node_ptr->pad = 0;
+                    node_ptr->fix = 0;
                     leaf_counter++;
                     tree_addr_cur += sizeof(struct Node);
                 }
@@ -1284,6 +1301,8 @@ private:
 
                     if (root->child1 != NULL)
                     {
+                        //If this node has a left child, then that child has already been traversed.  Find
+                        //the new address of the node and update the pointer.
                         node_ptr->child1 = (Node *)memory_addresses[(unsigned long long)root->child1];
                         memory_addresses.erase((unsigned long long)root->child1);
                     }
@@ -1294,13 +1313,15 @@ private:
 
                     if (root->child2 != NULL)
                     {
+                        //If this node has a right child, then that child has not been traversed.  Set a flag 
+                        //and placeholder address for updating in a final fixup pass through all the nodes.
                         node_ptr->child2 = root->child2; //have not traversed this node yet, so insert a placeholder to child2
-                        node_ptr->pad = 1;               //mark this node for fixup later
+                        node_ptr->fix = 1;               //mark this node for fixup later
                     }
                     else
                     {
                         node_ptr->child2 = NULL;
-                        node_ptr->pad = 0;
+                        node_ptr->fix = 0;
                     }
 
                     node_ptr->divfeat = root->divfeat;
@@ -1314,16 +1335,16 @@ private:
                 root = root->child2; //root = root.right;
             }
 
-            //loop pass to fix up the child2 pointers
+            //Final loop pass to fix up the child2 pointers
             for (int i = 0; i < (node_counter + leaf_counter); i++)
             {
                 Node *n_ptr = (Node *)(tree_addr_base + i * sizeof(struct Node));
-                if (n_ptr->pad == 1)
+                if (n_ptr->fix == 1)
                 {
                     Node *new_ptr = (Node *)memory_addresses[(unsigned long long)n_ptr->child2];
                     memory_addresses.erase((unsigned long long)n_ptr->child2);
                     n_ptr->child2 = new_ptr;
-                    n_ptr->pad = 0;
+                    n_ptr->fix = 0;
                 }
             }
 
@@ -1339,7 +1360,7 @@ private:
             region_start += sizeof(int);
             unsigned long long *root_ptr = (unsigned long long *) region_start;
             std::map<unsigned long long, unsigned long long>::iterator it = memory_addresses.begin();
-            *root_ptr = it->second; 
+            *root_ptr = it->second;  //store the new address of the root node
 
             std::cout << "address of start of tree in memory: " << (unsigned long long)tree_addr_base << std::endl;
             std::cout << "address of root node: " << it->second << std::endl;
@@ -1354,7 +1375,7 @@ private:
         int total_flann_size = (unsigned long long)tree_addr_cur - STARTING_ADDR; //include visual words and 4 trees
         std::cout << "total flann size: " << total_flann_size << std::endl;
 
-        //write out all the visual words to a file
+        //write out all the data to a file
         int point_size = points_.size();
         outfile->write(reinterpret_cast<char *>(&point_size), sizeof(int));
         outfile->write(reinterpret_cast<char *>(addr), total_flann_size);
@@ -1369,6 +1390,7 @@ private:
     {
         auto t1 = std::chrono::high_resolution_clock::now();
 
+        //Call mmap() to have the memory block allocated at the same starting address.
         int *addr;
         unsigned long long int starting_addr = STARTING_ADDR;
         int length = 1300000000;
@@ -1377,7 +1399,9 @@ private:
         {
             std::cout << "Error" << std::endl;
             exit(EXIT_FAILURE);
-        } else {
+        } 
+        else 
+        {
             std::cout << "Successful mapping to: " << addr << std::endl;
         }
 
@@ -1386,22 +1410,26 @@ private:
         infile->read(reinterpret_cast<char *>(&point_size), sizeof(int));
 
         float* data_ptr = (float*) starting_addr;
-        for (int i=0; i<point_size; i++) {
+        for (int i=0; i<point_size; i++) 
+        {
+            points_[i] = (ElementType*) data_ptr;
             infile->read(reinterpret_cast<char *>(data_ptr), 256 * sizeof(float));
             data_ptr += 256;
         }
 
+        //read in the tree data for 4 trees
         struct Node* root[4] = {NULL, NULL, NULL, NULL};
         char* t_ptr = (char*) data_ptr;
-        for (int i=0; i<4; i++) { //number of trees
+        for (int i=0; i<4; i++) //number of trees
+        { 
             int tree_size = 0;
-            infile->read(reinterpret_cast<char *>(&tree_size), sizeof(int));
+            infile->read(reinterpret_cast<char *>(&tree_size), sizeof(int));  //read in the tree size in bytes
             std::cout << "loading tree size: " << tree_size << std::endl;
-            infile->read(reinterpret_cast<char *>(&root[i]), sizeof(struct Node *));
+            infile->read(reinterpret_cast<char *>(&root[i]), sizeof(struct Node *));  //read in the root node pointer address
             std::cout << "root address: " << root[i] << std::endl;
 
             t_ptr += sizeof(int) + sizeof(struct Node *);
-            infile->read(reinterpret_cast<char *>(t_ptr), tree_size);
+            infile->read(reinterpret_cast<char *>(t_ptr), tree_size);  //read in the tree nodes in a contiguous block
             t_ptr += tree_size;
         }
 

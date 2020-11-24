@@ -1567,11 +1567,11 @@ void VWDictionary::debug()
 	std::cout << "_notIndexedWords: " << _notIndexedWords.size() << std::endl;
 	std::cout << "_removedIndexedWords: " << _removedIndexedWords.size() << std::endl;
 
-	std::cout << "datatree rows: " << _dataTree.rows << std::endl;
-	std::cout << "datatree cols: " << _dataTree.cols << std::endl;
+	// std::cout << "datatree rows: " << _dataTree.rows << std::endl;
+	// std::cout << "datatree cols: " << _dataTree.cols << std::endl;
 }
 
-void VWDictionary::save()
+void VWDictionary::save_vwdictionary()
 {
 	std::ofstream* outfile;
 	std::ifstream infile;
@@ -1687,7 +1687,7 @@ void VWDictionary::save()
 	// infile.close();
 }
 
-void VWDictionary::load() {
+void VWDictionary::load_vwdictionary() {
 	auto t1 = std::chrono::high_resolution_clock::now();
 	std::ifstream* infile;
 	infile = new std::ifstream();
@@ -1699,7 +1699,8 @@ void VWDictionary::load() {
 	int id;
 	infile->read(reinterpret_cast<char *>(&visualword_size), sizeof(int));  //read in the number of visual words
 	// std::cout << "restored visualword_size: " << visualword_size << std::endl;
-	for(int i=0; i<visualword_size; i++) {
+	for(int i=0; i<visualword_size; i++) 
+	{
 		cv::Mat d;	
 		d = cv::Mat(1, 32, CV_8U);	
 		infile->read(reinterpret_cast<char *>(&id), sizeof(int));  //read in the id
@@ -1778,7 +1779,8 @@ void VWDictionary::load() {
 	int unusedwords_size;
 	infile->read(reinterpret_cast<char *>(&unusedwords_size), sizeof(int));  //read in the number of visual words
 	std::cout << "restored unused word size: " << unusedwords_size << std::endl;
-	for(int i=0; i<unusedwords_size; i++) {
+	for(int i=0; i<unusedwords_size; i++) 
+	{
 		cv::Mat d;	
 		d = cv::Mat(1, 32, CV_8U);	
 		infile->read(reinterpret_cast<char *>(&id), sizeof(int));  //read in the id
