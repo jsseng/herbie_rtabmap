@@ -1571,6 +1571,8 @@ void VWDictionary::debug()
 	// std::cout << "datatree cols: " << _dataTree.cols << std::endl;
 }
 
+void VWDictionary::check_vwdictionary() {}
+
 void VWDictionary::save_vwdictionary()
 {
 	std::ofstream* outfile;

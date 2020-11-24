@@ -118,8 +118,10 @@ public:
 	void deleteUnusedWords();
 
 	void debug();
+	void check_vwdictionary();
 	void save_vwdictionary();
 	void load_vwdictionary();
+
 public:
 	static cv::Mat convertBinTo32F(const cv::Mat & descriptorsIn, bool byteToFloat = true);
 	static cv::Mat convert32FToBin(const cv::Mat & descriptorsIn, bool byteToFloat = true);
