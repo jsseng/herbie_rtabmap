@@ -1,16 +1,3 @@
-* Herbie project notes
-  * function call order
-    * loadDataFromDB() - Memory.cpp
-    * update() - VWDictionary.cpp
-    * addPoints() - FlannIndex.cpp
-    * buildIndex() - flann.hpp
-    * buildIndexImpl() - kdtree_index.h 
-  * class that need to be serialized
-    * VWDictionary
-    * VisualWord
-    * KDTreeIndex (NNIndex base class)
-  * serialize a CVMat:  https://stackoverflow.com/questions/32332920/efficiently-load-a-large-mat-into-memory-in-opencv/32357875#32357875
-
 rtabmap ![Analytics](https://ga-beacon-279122.nn.r.appspot.com/UA-56986679-3/github-main?pixel) 
 =======
 
