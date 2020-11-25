@@ -170,6 +170,7 @@ public:
     	BaseClass(params, d), mean_(NULL), var_(NULL)
     {
         trees_ = get_param(index_params_,"trees",4);
+        load_cached = 0;
     }
 
 
@@ -184,6 +185,7 @@ public:
                 Distance d = Distance() ) : BaseClass(params,d ), mean_(NULL), var_(NULL)
     {
         trees_ = get_param(index_params_,"trees",4);
+        load_cached = 0;
 
         setDataset(dataset);
     }
@@ -195,6 +197,7 @@ public:
         for (size_t i=0;i<tree_roots_.size();++i) {
         	copyTree(tree_roots_[i], other.tree_roots_[i]);
         }
+        load_cached = 0;
     }
 
     KDTreeIndex& operator=(KDTreeIndex other)
@@ -698,11 +701,15 @@ protected:
 
     void freeIndex()
     {
-    	for (size_t i=0;i<tree_roots_.size();++i) {
-    		// using placement new, so call destructor explicitly
-    		if (tree_roots_[i]!=NULL) tree_roots_[i]->~Node();
-    	}
-    	this->pool_.free();
+        if (load_cached == 0) {
+            for (size_t i = 0; i < tree_roots_.size(); ++i)
+            {
+                // using placement new, so call destructor explicitly
+                if (tree_roots_[i] != NULL)
+                    tree_roots_[i]->~Node();
+            }
+            this->pool_.free();
+        }
     }
 
 
@@ -1423,6 +1430,7 @@ private:
     //load_index
     virtual void load_index(std::ifstream *infile)
     {
+        load_cached = 1;
         auto t1 = std::chrono::high_resolution_clock::now();
 
         //Call mmap() to have the memory block allocated at the same starting address.
@@ -1453,6 +1461,7 @@ private:
         }
 
         //read in the tree data for 4 trees
+        tree_roots_.clear();
         struct Node* root[4] = {NULL, NULL, NULL, NULL};
         char* t_ptr = (char*) data_ptr;
         for (int i=0; i<4; i++) //number of trees
@@ -1462,6 +1471,7 @@ private:
             std::cout << "loading tree size: " << tree_size << std::endl;
             infile->read(reinterpret_cast<char *>(&root[i]), sizeof(struct Node *));  //read in the root node pointer address
             std::cout << "root address: " << root[i] << std::endl;
+            tree_roots_.push_back((NodePtr) root[i]);
 
             t_ptr += sizeof(int) + sizeof(struct Node *);
             infile->read(reinterpret_cast<char *>(t_ptr), tree_size);  //read in the tree nodes in a contiguous block
@@ -1562,6 +1572,7 @@ private:
      * number small of memory allocations.
      */
     //PooledAllocator pool_;
+    int load_cached;
 
     USING_BASECLASS_SYMBOLS
 };   // class KDTreeIndex

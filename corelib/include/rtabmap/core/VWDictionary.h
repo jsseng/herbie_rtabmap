@@ -134,6 +134,9 @@ protected:
 	int _totalActiveReferences; // keep track of all references for updating the common signature
 
 private:
+	int build_cache;
+	int read_cache;
+
 	bool _incrementalDictionary;
 	bool _incrementalFlann;
 	float _rebalancingFactor;

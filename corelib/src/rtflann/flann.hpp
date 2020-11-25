@@ -84,20 +84,16 @@ public:
     typedef typename Distance::ResultType DistanceType;
     typedef NNIndex<Distance> IndexType;
 
+    void save_index(std::ofstream *outfile) {
+        nnIndex_->save_index(outfile);
+    }
+
+    void load_index(std::ifstream *infile) {
+        nnIndex_->load_index(infile);
+    }
+
     void debug() {
         nnIndex_->debug_index();
-
-        std::ofstream *outfile;
-        outfile = new std::ofstream();
-        outfile->open("flann.dat", std::ios::out | std::ios::binary | std::ios::trunc);
-        nnIndex_->save_index(outfile);
-        outfile->close();
-
-        std::ifstream *infile;
-        infile = new std::ifstream();
-        infile->open("flann.dat", std::ios::in | std::ios::binary);
-        nnIndex_->load_index(infile);
-        infile->close();
     }
 
     Index(const IndexParams& params, Distance distance = Distance() )

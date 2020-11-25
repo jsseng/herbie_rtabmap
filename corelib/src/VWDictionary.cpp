@@ -77,6 +77,8 @@ VWDictionary::VWDictionary(const ParametersMap & parameters) :
 {
 	this->setNNStrategy((NNStrategy)Parameters::defaultKpNNStrategy());
 	this->parseParameters(parameters);
+	this->build_cache = 0;
+	this->read_cache = 0;
 }
 
 VWDictionary::~VWDictionary()
@@ -1682,6 +1684,8 @@ void VWDictionary::save_vwdictionary()
 
 	outfile->close();
 
+	_flannIndex->save_index();
+
 	//check data
 	// infile.open("vwdictionary.dat", std::ios::in | std::ios::binary);
 	// infile.read(reinterpret_cast<char*> (&visualword_num),sizeof(int));
@@ -1814,7 +1818,12 @@ void VWDictionary::load_vwdictionary() {
 	}
 
 	infile->close();
-    auto t2 = std::chrono::high_resolution_clock::now();
+
+	//load the flann index data
+	_flannIndex = new FlannIndex();
+	_flannIndex->load_index();
+
+	auto t2 = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double, std::milli> fp_ms = t2 - t1;
 	std::cout << "load time in milliseconds: " << fp_ms.count() << std::endl;
 }

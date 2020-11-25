@@ -88,6 +88,79 @@ void FlannIndex::debug()
 	std::cout << "size of removedIndexes_: " << removedIndexes_.size() << std::endl;
 }
 
+void FlannIndex::save_index()
+{
+	std::ofstream *outfile;
+	outfile = new std::ofstream();
+	outfile->open("flann.dat", std::ios::out | std::ios::binary | std::ios::trunc);
+	((rtflann::Index<rtflann::L1<float>> *)index_)->save_index(outfile);
+
+	//FIXME - save variables in FlannIndex
+	//unsigned int nextIndex_;
+	outfile->write(reinterpret_cast<char *>(&nextIndex_), sizeof(unsigned int));
+
+	//int featuresType_;
+	outfile->write(reinterpret_cast<char *>(&featuresType_), sizeof(int));
+
+	// int featuresDim_;
+	outfile->write(reinterpret_cast<char *>(&featuresDim_), sizeof(int));
+
+	// bool isLSH_;
+	outfile->write(reinterpret_cast<char *>(&isLSH_), sizeof(bool));
+
+	// bool useDistanceL1_; // true=EUCLEDIAN_L2 false=MANHATTAN_L1
+	outfile->write(reinterpret_cast<char *>(&useDistanceL1_), sizeof(bool));
+
+	// float rebalancingFactor_;
+	outfile->write(reinterpret_cast<char *>(&rebalancingFactor_), sizeof(float));
+
+	// // keep feature in memory until the tree is rebuilt
+	// // (in case the word is deleted when removed from the VWDictionary)
+	// std::map<int, cv::Mat> addedDescriptors_;
+	std::cout << "size of addedDescriptors_" << addedDescriptors_.size() << std::endl;
+
+	// std::list<int> removedIndexes_;
+
+	outfile->close();
+}
+
+void FlannIndex::load_index()
+{
+	float data[32] = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+	cv::Mat features = cv::Mat(1, 32, CV_32F, data);
+
+	rtflann::KDTreeIndexParams params(4);
+
+	rtflann::Matrix<float> dataset((float*)features.data, features.rows, features.cols);
+	index_ = new rtflann::Index<rtflann::L1<float> >(dataset, params);
+
+	std::ifstream *infile;
+	infile = new std::ifstream();
+	infile->open("flann.dat", std::ios::in | std::ios::binary);
+	((rtflann::Index<rtflann::L1<float>> *)index_)->load_index(infile);
+
+	//FIXME - load variables in FlannIndex
+	//unsigned int nextIndex_;
+	infile->read(reinterpret_cast<char *>(&nextIndex_), sizeof(unsigned int));
+
+	//int featuresType_;
+	infile->read(reinterpret_cast<char *>(&featuresType_), sizeof(int));
+
+	// int featuresDim_;
+	infile->read(reinterpret_cast<char *>(&featuresDim_), sizeof(int));
+
+	// bool isLSH_;
+	infile->read(reinterpret_cast<char *>(&isLSH_), sizeof(bool));
+
+	// bool useDistanceL1_; // true=EUCLEDIAN_L2 false=MANHATTAN_L1
+	infile->read(reinterpret_cast<char *>(&useDistanceL1_), sizeof(bool));
+
+	// float rebalancingFactor_;
+	infile->read(reinterpret_cast<char *>(&rebalancingFactor_), sizeof(float));
+
+	infile->close();
+}
+
 unsigned int FlannIndex::indexedFeatures() const
 {
 	if(!index_)

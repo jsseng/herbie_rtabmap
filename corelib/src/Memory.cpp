@@ -356,92 +356,133 @@ void Memory::loadDataFromDb(bool postInitClosingEvents)
 		// Now load the dictionary if we have a connection
 		if(postInitClosingEvents) UEventsManager::post(new RtabmapEventInit("Loading dictionary..."));
 		UDEBUG("Loading dictionary...");
-		if(loadAllNodesInWM)
-		{
-			UDEBUG("load all referenced words in working memory");
-			// load all referenced words in working memory
-			std::set<int> wordIds;
-			const std::map<int, Signature *> & signatures = this->getSignatures();
-			for(std::map<int, Signature *>::const_iterator i=signatures.begin(); i!=signatures.end(); ++i)
-			{
-				const std::multimap<int, int> & words = i->second->getWords();
-				std::list<int> keys = uUniqueKeys(words);
-				for(std::list<int>::iterator iter=keys.begin(); iter!=keys.end(); ++iter)
-				{
-					if(*iter > 0)
-					{
-						wordIds.insert(*iter);
-					}
-				}
-			}
 
-			UDEBUG("load words %d", (int)wordIds.size());
-			if(_vwd->isIncremental())
+		int load_cache = 0;
+		int build_cache = 1;
+		if (load_cache == 0) {
+			if (loadAllNodesInWM)
 			{
-				if(wordIds.size())
+				UDEBUG("load all referenced words in working memory");
+				// load all referenced words in working memory
+				std::set<int> wordIds;
+				const std::map<int, Signature *> &signatures = this->getSignatures();
+				for (std::map<int, Signature *>::const_iterator i = signatures.begin(); i != signatures.end(); ++i)
 				{
-					std::cout << "_vwd.size before: " << _vwd->getVisualWords().size() << std::endl;
-					std::list<VisualWord*> words;
-					_dbDriver->loadWords(wordIds, words);
-					for(std::list<VisualWord*>::iterator iter = words.begin(); iter!=words.end(); ++iter)
+					const std::multimap<int, int> &words = i->second->getWords();
+					std::list<int> keys = uUniqueKeys(words);
+					for (std::list<int>::iterator iter = keys.begin(); iter != keys.end(); ++iter)
 					{
-						_vwd->addWord(*iter);
+						if (*iter > 0)
+						{
+							wordIds.insert(*iter);
+						}
 					}
-					// Get Last word id
-					int id = 0;
-					_dbDriver->getLastWordId(id);
-					_vwd->setLastWordId(id);
-					std::cout << "_vwd.size after: " << _vwd->getVisualWords().size() << std::endl;
 				}
-				std::cout << "----Running load() 1----" << std::endl;
+
+				UDEBUG("load words %d", (int)wordIds.size());
+				if (_vwd->isIncremental())
+				{
+					if (wordIds.size())
+					{
+						std::cout << "_vwd.size before: " << _vwd->getVisualWords().size() << std::endl;
+						std::list<VisualWord *> words;
+						_dbDriver->loadWords(wordIds, words);
+						for (std::list<VisualWord *>::iterator iter = words.begin(); iter != words.end(); ++iter)
+						{
+							_vwd->addWord(*iter);
+						}
+						// Get Last word id
+						int id = 0;
+						_dbDriver->getLastWordId(id);
+						_vwd->setLastWordId(id);
+						std::cout << "_vwd.size after: " << _vwd->getVisualWords().size() << std::endl;
+					}
+					std::cout << "----Running load() 1----" << std::endl;
+				}
+				else
+				{
+					_dbDriver->load(_vwd, false);
+					std::cout << "----Running load() 2----" << std::endl;
+				}
 			}
 			else
 			{
-				_dbDriver->load(_vwd, false);
-				std::cout << "----Running load() 2----" << std::endl;
+				UDEBUG("load words");
+				// load the last dictionary
+				_dbDriver->load(_vwd, _vwd->isIncremental());
+			}
+			UDEBUG("%d words loaded!", _vwd->getUnusedWordsSize());
+			_vwd->update();
+			//get_vwdictionary_info(_vwd); //JS
+			if (postInitClosingEvents)
+				UEventsManager::post(new RtabmapEventInit(uFormat("Loading dictionary, done! (%d words)", (int)_vwd->getUnusedWordsSize())));
+
+			if (postInitClosingEvents)
+				UEventsManager::post(new RtabmapEventInit(std::string("Adding word references...")));
+			// Enable loaded signatures
+			const std::map<int, Signature *> &signatures = this->getSignatures();
+			for (std::map<int, Signature *>::const_iterator i = signatures.begin(); i != signatures.end(); ++i)
+			{
+				Signature *s = this->_getSignature(i->first);
+				UASSERT(s != 0);
+
+				const std::multimap<int, int> &words = s->getWords();
+				if (words.size())
+				{
+					UDEBUG("node=%d, word references=%d", s->id(), words.size());
+					for (std::multimap<int, int>::const_iterator iter = words.begin(); iter != words.end(); ++iter)
+					{
+						if (iter->first > 0)
+						{
+							_vwd->addWordRef(iter->first, i->first);
+						}
+					}
+					s->setEnabled(true);
+				}
+			}
+			if (postInitClosingEvents)
+				UEventsManager::post(new RtabmapEventInit(uFormat("Adding word references, done! (%d)", _vwd->getTotalActiveReferences())));
+
+			if (_vwd->getUnusedWordsSize() && _vwd->isIncremental())
+			{
+				UWARN("_vwd->getUnusedWordsSize() must be empty... size=%d", _vwd->getUnusedWordsSize());
+			}
+			UDEBUG("Total word references added = %d", _vwd->getTotalActiveReferences());
+
+			if (build_cache == 1)
+			{
+				// get_vwdictionary_info(_vwd); //JS
+				_vwd->save_vwdictionary();
 			}
 		}
 		else
 		{
-			UDEBUG("load words");
-			// load the last dictionary
-			_dbDriver->load(_vwd, _vwd->isIncremental());
-		}
-		UDEBUG("%d words loaded!", _vwd->getUnusedWordsSize());
-		_vwd->update();
-		//get_vwdictionary_info(_vwd); //JS
-		if(postInitClosingEvents) UEventsManager::post(new RtabmapEventInit(uFormat("Loading dictionary, done! (%d words)", (int)_vwd->getUnusedWordsSize())));
+			_vwd->load_vwdictionary();
 
-		if(postInitClosingEvents) UEventsManager::post(new RtabmapEventInit(std::string("Adding word references...")));
-		// Enable loaded signatures
-		const std::map<int, Signature *> & signatures = this->getSignatures();
-		for(std::map<int, Signature *>::const_iterator i=signatures.begin(); i!=signatures.end(); ++i)
-		{
-			Signature * s = this->_getSignature(i->first);
-			UASSERT(s != 0);
+			if (postInitClosingEvents)
+				UEventsManager::post(new RtabmapEventInit(uFormat("Loading dictionary, done! (%d words)", (int)_vwd->getUnusedWordsSize())));
 
-			const std::multimap<int, int> & words = s->getWords();
-			if(words.size())
-			{
-				UDEBUG("node=%d, word references=%d", s->id(), words.size());
-				for(std::multimap<int, int>::const_iterator iter = words.begin(); iter!=words.end(); ++iter)
-				{
-					if(iter->first > 0)
-					{
-						_vwd->addWordRef(iter->first, i->first);
-					}
-				}
-				s->setEnabled(true);
-			}
-		}
-		if(postInitClosingEvents) UEventsManager::post(new RtabmapEventInit(uFormat("Adding word references, done! (%d)", _vwd->getTotalActiveReferences())));
+			if (postInitClosingEvents)
+				UEventsManager::post(new RtabmapEventInit(std::string("Adding word references...")));
 
-		if(_vwd->getUnusedWordsSize() && _vwd->isIncremental())
-		{
-			UWARN("_vwd->getUnusedWordsSize() must be empty... size=%d", _vwd->getUnusedWordsSize());
+			//FIXME
+			// const std::map<int, Signature *> &signatures = this->getSignatures();
+			// for (std::map<int, Signature *>::const_iterator i = signatures.begin(); i != signatures.end(); ++i)
+			// {
+			// 	Signature *s = this->_getSignature(i->first);
+			// 	UASSERT(s != 0);
+
+			// 	const std::multimap<int, int> &words = s->getWords();
+			// 	if (words.size())
+			// 	{
+			// 		UDEBUG("node=%d, word references=%d", s->id(), words.size());
+			// 		s->setEnabled(true);
+			// 	}
+			// }
+
+			if (postInitClosingEvents)
+				UEventsManager::post(new RtabmapEventInit(uFormat("Adding word references, done! (%d)", _vwd->getTotalActiveReferences())));
 		}
-		UDEBUG("Total word references added = %d", _vwd->getTotalActiveReferences());
-		get_vwdictionary_info(_vwd); //JS
 
 		if(_lastSignature == 0)
 		{

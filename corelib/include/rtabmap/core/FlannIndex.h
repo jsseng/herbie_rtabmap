@@ -43,6 +43,8 @@ public:
 	void release();
 	unsigned int indexedFeatures() const;
 	void debug();
+	void load_index();
+	void save_index();
 
 	// return Bytes
 	unsigned long memoryUsed() const;
