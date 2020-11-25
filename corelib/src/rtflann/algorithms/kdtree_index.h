@@ -1381,6 +1381,40 @@ private:
         outfile->write(reinterpret_cast<char *>(&point_size), sizeof(int));
         outfile->write(reinterpret_cast<char *>(addr), total_flann_size);
 
+        //write out the local variables of the class:  KDTreeIndex 
+        outfile->write(reinterpret_cast<char *>(&trees_), sizeof(int));
+        outfile->write(reinterpret_cast<char *>(&mean_), sizeof(DistanceType*));
+        outfile->write(reinterpret_cast<char *>(&var_), sizeof(DistanceType*));
+
+        //write out the local variables of the class:  NNIndex
+        //Distance distance_;
+        outfile->write(reinterpret_cast<char *>(&this->last_id_), sizeof(size_t));
+        outfile->write(reinterpret_cast<char *>(&this->size_), sizeof(size_t));
+        outfile->write(reinterpret_cast<char *>(&this->size_at_build_), sizeof(size_t));
+        outfile->write(reinterpret_cast<char *>(&this->veclen_), sizeof(size_t));
+
+        //IndexParams index_params_;
+        int indexparams_size = index_params_.size();
+        outfile->write(reinterpret_cast<char *>(&indexparams_size), sizeof(int));  //store the parameter string
+        for (std::map<std::string, any>::iterator iter = index_params_.begin(); iter != index_params_.end(); ++iter)
+        {
+            int length = iter->first.length();
+            outfile->write(reinterpret_cast<char *>(&length), sizeof(int));  //store the parameter string
+            outfile->write(iter->first.data(), iter->first.length());  //store the parameter string
+            outfile->write(reinterpret_cast<char *>(&iter->second), sizeof(any));  //store the value
+        }
+
+        outfile->write(reinterpret_cast<char *>(&this->removed_), sizeof(bool));
+        //DynamicBitset removed_points_;  //should be 0, so do not store
+        outfile->write(reinterpret_cast<char *>(&this->removed_count_), sizeof(size_t));
+
+        std::cout << "ids_ size: " << ids_.size() << std::endl;
+        for (unsigned int i=0; i<ids_.size(); i++) {
+            outfile->write(reinterpret_cast<char *>(&ids_[i]), sizeof(size_t));
+        }
+
+        outfile->write(reinterpret_cast<char *>(&this->data_ptr_), sizeof(ElementType*));
+
         //unmap the memory
         munmap(addr,length);
     }
@@ -1433,6 +1467,44 @@ private:
             infile->read(reinterpret_cast<char *>(t_ptr), tree_size);  //read in the tree nodes in a contiguous block
             t_ptr += tree_size;
         }
+
+        //write out the local variables of the class:  KDTreeIndex 
+        infile->read(reinterpret_cast<char *>(&trees_), sizeof(int));
+        infile->read(reinterpret_cast<char *>(&mean_), sizeof(DistanceType*));
+        infile->read(reinterpret_cast<char *>(&var_), sizeof(DistanceType*));
+
+        //write out the local variables of the class:  NNIndex
+        //Distance distance_;
+        infile->read(reinterpret_cast<char *>(&this->last_id_), sizeof(size_t));
+        infile->read(reinterpret_cast<char *>(&this->size_), sizeof(size_t));
+        infile->read(reinterpret_cast<char *>(&this->size_at_build_), sizeof(size_t));
+        infile->read(reinterpret_cast<char *>(&this->veclen_), sizeof(size_t));
+
+        //IndexParams index_params_;
+        int indexparams_size;
+        infile->read(reinterpret_cast<char *>(&indexparams_size), sizeof(int));  //restore the size of the parameters
+        for (int i=0; i<indexparams_size; i++)
+        {
+            char buf[100];
+            int length;
+            infile->read(reinterpret_cast<char *>(&length), sizeof(int));  //store the parameter string
+            infile->read(reinterpret_cast<char *>(buf), length);  //store the parameter string
+            buf[length] = 0; //NULL terminate the string;
+            std::string s(buf);
+            any a;
+            infile->read(reinterpret_cast<char *>(&a), sizeof(any));  //store the value
+            index_params_.insert(std::pair<std::string,any>(s,a));
+        }
+
+        infile->read(reinterpret_cast<char *>(&this->removed_), sizeof(bool));
+        //DynamicBitset removed_points_;  //should be 0, so do not store
+        infile->read(reinterpret_cast<char *>(&this->removed_count_), sizeof(size_t));
+
+        for (unsigned int i=0; i<ids_.size(); i++) {
+            infile->read(reinterpret_cast<char *>(&ids_[i]), sizeof(size_t));
+        }
+
+        infile->read(reinterpret_cast<char *>(&this->data_ptr_), sizeof(ElementType*));
 
         auto t2 = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double, std::milli> fp_ms = t2 - t1;

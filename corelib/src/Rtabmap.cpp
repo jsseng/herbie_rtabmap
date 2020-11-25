@@ -56,6 +56,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <stdlib.h>
 #include <set>
+#include <malloc.h>
 
 #define LOG_F "LogF.txt"
 #define LOG_I "LogI.txt"
@@ -328,8 +329,11 @@ void Rtabmap::init(const ParametersMap & parameters, const std::string & databas
 	// If doesn't exist, create a memory
 	if(!_memory)
 	{
+		//malloc_stats();
 		_memory = new Memory(allParameters);
 		_memory->init(_databasePath, false, allParameters, true);
+		// std::cout << "--------------malloc after----------" << std::endl;
+		// malloc_stats();
 	}
 
 	// Parse all parameters
