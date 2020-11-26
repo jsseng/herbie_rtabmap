@@ -108,7 +108,7 @@ void FlannIndex::save_index()
 	// bool isLSH_;
 	outfile->write(reinterpret_cast<char *>(&isLSH_), sizeof(bool));
 
-	// bool useDistanceL1_; // true=EUCLEDIAN_L2 false=MANHATTAN_L1
+	// bool useDistanceL1_; 
 	outfile->write(reinterpret_cast<char *>(&useDistanceL1_), sizeof(bool));
 
 	// float rebalancingFactor_;
@@ -126,10 +126,14 @@ void FlannIndex::save_index()
 
 void FlannIndex::load_index()
 {
-	float data[32] = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
-	cv::Mat features = cv::Mat(1, 32, CV_32F, data);
+	float *data = new float[256]; 
+	cv::Mat features = cv::Mat(1, 256, CV_32F, data);
 
 	rtflann::KDTreeIndexParams params(4);
+	featuresType_ = features.type();
+	featuresDim_ = features.cols;
+	useDistanceL1_ = true;
+	rebalancingFactor_ = 2.0;
 
 	rtflann::Matrix<float> dataset((float*)features.data, features.rows, features.cols);
 	index_ = new rtflann::Index<rtflann::L1<float> >(dataset, params);
@@ -152,7 +156,7 @@ void FlannIndex::load_index()
 	// bool isLSH_;
 	infile->read(reinterpret_cast<char *>(&isLSH_), sizeof(bool));
 
-	// bool useDistanceL1_; // true=EUCLEDIAN_L2 false=MANHATTAN_L1
+	// bool useDistanceL1_;
 	infile->read(reinterpret_cast<char *>(&useDistanceL1_), sizeof(bool));
 
 	// float rebalancingFactor_;

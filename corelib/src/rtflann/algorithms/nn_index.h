@@ -899,7 +899,7 @@ protected:
      */
     ElementType* data_ptr_;
 
-    PooledAllocator pool_;
+    //PooledAllocator pool_;
 
 };
 

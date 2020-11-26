@@ -466,19 +466,19 @@ void Memory::loadDataFromDb(bool postInitClosingEvents)
 				UEventsManager::post(new RtabmapEventInit(std::string("Adding word references...")));
 
 			//FIXME
-			// const std::map<int, Signature *> &signatures = this->getSignatures();
-			// for (std::map<int, Signature *>::const_iterator i = signatures.begin(); i != signatures.end(); ++i)
-			// {
-			// 	Signature *s = this->_getSignature(i->first);
-			// 	UASSERT(s != 0);
+			const std::map<int, Signature *> &signatures = this->getSignatures();
+			for (std::map<int, Signature *>::const_iterator i = signatures.begin(); i != signatures.end(); ++i)
+			{
+				Signature *s = this->_getSignature(i->first);
+				UASSERT(s != 0);
 
-			// 	const std::multimap<int, int> &words = s->getWords();
-			// 	if (words.size())
-			// 	{
-			// 		UDEBUG("node=%d, word references=%d", s->id(), words.size());
-			// 		s->setEnabled(true);
-			// 	}
-			// }
+				const std::multimap<int, int> &words = s->getWords();
+				if (words.size())
+				{
+					UDEBUG("node=%d, word references=%d", s->id(), words.size());
+					s->setEnabled(true);
+				}
+			}
 
 			if (postInitClosingEvents)
 				UEventsManager::post(new RtabmapEventInit(uFormat("Adding word references, done! (%d)", _vwd->getTotalActiveReferences())));

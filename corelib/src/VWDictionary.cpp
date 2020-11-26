@@ -1819,6 +1819,8 @@ void VWDictionary::load_vwdictionary() {
 
 	infile->close();
 
+	_dataTree = cv::Mat();
+
 	//load the flann index data
 	_flannIndex = new FlannIndex();
 	_flannIndex->load_index();

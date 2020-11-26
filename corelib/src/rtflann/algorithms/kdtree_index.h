@@ -261,7 +261,7 @@ public:
     	}
     	for (size_t i=0;i<tree_roots_.size();++i) {
     		if (Archive::is_loading::value) {
-    			tree_roots_[i] = new(this->pool_) Node();
+    			tree_roots_[i] = new(pool_) Node();
     		}
     		ar & *tree_roots_[i];
     	}
@@ -293,7 +293,7 @@ public:
      */
     int usedMemory() const
     {
-        return int(this->pool_.usedMemory+this->pool_.wastedMemory+size_*sizeof(int));  // pool memory and vind array memory
+        return int(pool_.usedMemory+pool_.wastedMemory+size_*sizeof(int));  // pool memory and vind array memory
     }
 
     /**
@@ -701,15 +701,15 @@ protected:
 
     void freeIndex()
     {
-        if (load_cached == 0) {
+        //if (load_cached == 0) {
             for (size_t i = 0; i < tree_roots_.size(); ++i)
             {
                 // using placement new, so call destructor explicitly
                 if (tree_roots_[i] != NULL)
                     tree_roots_[i]->~Node();
             }
-            this->pool_.free();
-        }
+            pool_.free();
+        //}
     }
 
 
@@ -717,7 +717,7 @@ private:
 
     void copyTree(NodePtr& dst, const NodePtr& src)
     {
-    	dst = new(this->pool_) Node();
+    	dst = new(pool_) Node();
     	dst->divfeat = src->divfeat;
     	dst->divval = src->divval;
     	if (src->child1==NULL && src->child2==NULL) {
@@ -743,7 +743,7 @@ private:
      */
     NodePtr divideTree(int* ind, int count)
     {
-        NodePtr node = new(this->pool_) Node(); // allocate memory
+        NodePtr node = new(pool_) Node(); // allocate memory
 
         /* If too few exemplars remain, then make this a leaf node. */
         if (count == 1) {
@@ -1072,9 +1072,9 @@ private:
                     div_feat = i;
                 }
             }
-            NodePtr left = new(this->pool_) Node();
+            NodePtr left = new(pool_) Node();
             left->child1 = left->child2 = NULL;
-            NodePtr right = new(this->pool_) Node();
+            NodePtr right = new(pool_) Node();
             right->child1 = right->child2 = NULL;
 
             if (point[div_feat]<leaf_point[div_feat]) {
@@ -1193,11 +1193,13 @@ private:
 
                 root = root->child2; //root = root.right;
             }
+
+
             outfile->close();
         }
     }
 
-    // #define STARTING_ADDR 0x6ffebb6f6000
+    //#define STARTING_ADDR 0x6ffebb6f6000
        #define STARTING_ADDR 0x600000000000
 
     virtual void save_index(std::ofstream *outfile) 
@@ -1373,7 +1375,9 @@ private:
             std::cout << "address of start of tree in memory: " << (unsigned long long)tree_addr_base << std::endl;
             std::cout << "address of root node: " << it->second << std::endl;
             std::cout << "address of end of tree in memory: " << (unsigned long long)tree_addr_cur << std::endl;
-            //check_trees(3, (char *)it->second);
+            if(tr ==0) {
+                //check_trees(0, (char *)it->second);
+            }
 
             std::cout << "nodes: " << node_counter << "  leaves: " << leaf_counter << std::endl;
 
@@ -1424,6 +1428,15 @@ private:
 
         //unmap the memory
         munmap(addr,length);
+
+        std::ofstream *idfile;
+        idfile = new std::ofstream();
+        idfile->open("ref_points.dat", std::ios::out | std::ios::binary | std::ios::trunc);
+        for (unsigned int i = 0; i < points_.size(); i++)
+        {
+            idfile->write(reinterpret_cast<char *>(points_[i]), sizeof(float)*256);
+        }
+        idfile->close();
     }
 
     ///////////////////////////////////////////////////////////////////////
@@ -1460,18 +1473,30 @@ private:
             data_ptr += 256;
         }
 
+        // std::ofstream *idfile;
+        // idfile = new std::ofstream();
+        // idfile->open("test_points.dat", std::ios::out | std::ios::binary | std::ios::trunc);
+        // for (int i = 0; i < point_size; i++)
+        // {
+        //     idfile->write(reinterpret_cast<char *>(points_[i]), sizeof(float)*256);
+        // }
+        // idfile->close();
+
         //read in the tree data for 4 trees
-        tree_roots_.clear();
-        struct Node* root[4] = {NULL, NULL, NULL, NULL};
+        std::cout << "--------size of trees_----------" << trees_ << std::endl;
+        this->tree_roots_.resize(trees_);
+        //tree_roots_.clear();
+        NodePtr root[4] = {NULL, NULL, NULL, NULL};
         char* t_ptr = (char*) data_ptr;
         for (int i=0; i<4; i++) //number of trees
         { 
             int tree_size = 0;
             infile->read(reinterpret_cast<char *>(&tree_size), sizeof(int));  //read in the tree size in bytes
             std::cout << "loading tree size: " << tree_size << std::endl;
-            infile->read(reinterpret_cast<char *>(&root[i]), sizeof(struct Node *));  //read in the root node pointer address
+            infile->read(reinterpret_cast<char *>(&root[i]), sizeof(NodePtr));  //read in the root node pointer address
             std::cout << "root address: " << root[i] << std::endl;
-            tree_roots_.push_back((NodePtr) root[i]);
+            this->tree_roots_.assign(i,(NodePtr) root[i]);
+            // tree_roots_[i] = root[i];
 
             t_ptr += sizeof(int) + sizeof(struct Node *);
             infile->read(reinterpret_cast<char *>(t_ptr), tree_size);  //read in the tree nodes in a contiguous block
@@ -1497,13 +1522,15 @@ private:
         {
             char buf[100];
             int length;
-            infile->read(reinterpret_cast<char *>(&length), sizeof(int));  //store the parameter string
-            infile->read(reinterpret_cast<char *>(buf), length);  //store the parameter string
+            infile->read(reinterpret_cast<char *>(&length), sizeof(int));  //read the length of the parameter string
+            infile->read(reinterpret_cast<char *>(buf), length);  //read the parameter string
             buf[length] = 0; //NULL terminate the string;
             std::string s(buf);
-            any a;
-            infile->read(reinterpret_cast<char *>(&a), sizeof(any));  //store the value
-            index_params_.insert(std::pair<std::string,any>(s,a));
+            // any a;
+            infile->read(reinterpret_cast<char *>(buf), sizeof(any));  //read the parameter value
+
+            //TODO - index_params is already set on construction, so do not modify it
+            // index_params_.insert(std::pair<std::string,any>(s,a));
         }
 
         infile->read(reinterpret_cast<char *>(&this->removed_), sizeof(bool));
@@ -1527,7 +1554,7 @@ private:
     	BaseClass::swap(other);
     	std::swap(trees_, other.trees_);
     	std::swap(tree_roots_, other.tree_roots_);
-    	std::swap(this->pool_, other.pool_);
+    	std::swap(pool_, other.pool_);
     }
 
 private:
@@ -1571,7 +1598,7 @@ private:
      * than allocating memory directly when there is a large
      * number small of memory allocations.
      */
-    //PooledAllocator pool_;
+    PooledAllocator pool_;
     int load_cached;
 
     USING_BASECLASS_SYMBOLS
