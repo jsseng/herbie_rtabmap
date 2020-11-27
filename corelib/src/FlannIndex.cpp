@@ -29,6 +29,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <rtabmap/utilite/ULogger.h>
 
 #include "rtflann/flann.hpp"
+#include <sys/mman.h>
 
 namespace rtabmap {
 
@@ -126,22 +127,53 @@ void FlannIndex::save_index()
 
 void FlannIndex::load_index()
 {
-	float *data = new float[256]; 
-	cv::Mat features = cv::Mat(1, 256, CV_32F, data);
+	std::ifstream *infile;
+	infile = new std::ifstream();
+	infile->open("flann.dat", std::ios::in | std::ios::binary);
 
-	rtflann::KDTreeIndexParams params(4);
+	//Call mmap() to have the memory block allocated at the same starting address.
+	char *addr;
+	unsigned long long int starting_addr = 0x600000000000;
+	unsigned int length = 1300000000;
+	addr = (char *)mmap((void *)starting_addr, length, PROT_READ | PROT_WRITE, MAP_FIXED | MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+	if (addr == MAP_FAILED)
+	{
+		std::cout << "Error" << std::endl;
+		exit(EXIT_FAILURE);
+	}
+	else
+	{
+		std::cout << "Successful mapping to: " << (unsigned long long)addr << std::endl;
+	}
+
+	//read in all the visual words from a file
+	int point_size;
+	infile->read(reinterpret_cast<char *>(&point_size), sizeof(int));
+
+	float *data_ptr = reinterpret_cast<float *>(addr);
+	for (int i = 0; i < point_size; i++)
+	{
+		infile->read(reinterpret_cast<char *>(data_ptr), 256 * sizeof(float));
+		data_ptr += 256;
+	}
+
+	//create a Matrix from the data
+	cv::Mat features = cv::Mat(point_size, 256, CV_32F, addr);
 	featuresType_ = features.type();
 	featuresDim_ = features.cols;
 	useDistanceL1_ = true;
 	rebalancingFactor_ = 2.0;
 
+	rtflann::KDTreeIndexParams params(4);
+
 	rtflann::Matrix<float> dataset((float*)features.data, features.rows, features.cols);
 	index_ = new rtflann::Index<rtflann::L1<float> >(dataset, params);
 
-	std::ifstream *infile;
-	infile = new std::ifstream();
-	infile->open("flann.dat", std::ios::in | std::ios::binary);
-	((rtflann::Index<rtflann::L1<float>> *)index_)->load_index(infile);
+	((rtflann::Index<rtflann::L1<float>> *)index_)->set_cached(1); //indicate to use a cache index
+	((rtflann::Index<rtflann::L1<float>> *)index_)->buildIndex();
+
+	char* var_start_ptr = (char*) (starting_addr + point_size*256*sizeof(float)); 
+	((rtflann::Index<rtflann::L1<float>> *)index_)->load_index(infile, var_start_ptr);
 
 	//FIXME - load variables in FlannIndex
 	//unsigned int nextIndex_;

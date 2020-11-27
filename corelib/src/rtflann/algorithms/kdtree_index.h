@@ -186,6 +186,7 @@ public:
     {
         trees_ = get_param(index_params_,"trees",4);
         load_cached = 0;
+        this->cached = 0;
 
         setDataset(dataset);
     }
@@ -678,25 +679,29 @@ protected:
      */
     void buildIndexImpl()
     {
-        std::cout << "---(buildIndexImpl() - kdtree_index.h)---" << std::endl;
-        // Create a permutable array of indices to the input vectors.
-    	std::vector<int> ind(size_);
-        for (size_t i = 0; i < size_; ++i) {
-            ind[i] = int(i);
-        }
+        if (this->cached==0) {
+            std::cout << "---(buildIndexImpl() - kdtree_index.h)---" << std::endl;
+            // Create a permutable array of indices to the input vectors.
+            std::vector<int> ind(size_);
+            for (size_t i = 0; i < size_; ++i)
+            {
+                ind[i] = int(i);
+            }
 
-        mean_ = new DistanceType[veclen_];
-        var_ = new DistanceType[veclen_];
+            mean_ = new DistanceType[veclen_];
+            var_ = new DistanceType[veclen_];
 
-        tree_roots_.resize(trees_);
-        /* Construct the randomized trees. */
-        for (int i = 0; i < trees_; i++) {
-            /* Randomize the order of vectors to allow for unbiased sampling. */
-            std::random_shuffle(ind.begin(), ind.end());
-            tree_roots_[i] = divideTree(&ind[0], int(size_) );
+            tree_roots_.resize(trees_);
+            /* Construct the randomized trees. */
+            for (int i = 0; i < trees_; i++)
+            {
+                /* Randomize the order of vectors to allow for unbiased sampling. */
+                std::random_shuffle(ind.begin(), ind.end());
+                tree_roots_[i] = divideTree(&ind[0], int(size_));
+            }
+            delete[] mean_;
+            delete[] var_;
         }
-        delete[] mean_;
-        delete[] var_;
     }
 
     void freeIndex()
@@ -1221,8 +1226,8 @@ private:
         //address, but mmap() does.
         char *addr;  //pointer to the new memory
         unsigned long long int starting_addr = STARTING_ADDR;
-        int length = 1300000000;  //1.3GB for now
-        addr = (char *)mmap((void *)starting_addr, length, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+        unsigned int length = 1300000000;  //1.3GB for now
+        addr = (char *)mmap((void *)starting_addr, length, PROT_READ | PROT_WRITE, MAP_FIXED | MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
         if (addr == MAP_FAILED)
         {
             std::cout << "Error obtaining memory" << std::endl;
@@ -1237,7 +1242,7 @@ private:
         //256 floats, where each float is a binary number (0 or 1).  The visual words are copied into the new
         //memory first and then the trees are placed after the visual words.
         float *f_ptr, *f_write;
-        f_write = (float*) starting_addr;
+        f_write = (float*) addr;
         for(unsigned int i=0;i<points_.size();i++) 
         {
             f_ptr = (float*) points_[i];
@@ -1384,7 +1389,7 @@ private:
             tree_addr_base = tree_addr_cur;
         }
 
-        int total_flann_size = (unsigned long long)tree_addr_cur - STARTING_ADDR; //include visual words and 4 trees
+        int total_flann_size = (unsigned long long)(tree_addr_cur - addr); //include visual words and 4 trees
         std::cout << "total flann size: " << total_flann_size << std::endl;
 
         //write out all the data to a file
@@ -1405,15 +1410,15 @@ private:
         outfile->write(reinterpret_cast<char *>(&this->veclen_), sizeof(size_t));
 
         //IndexParams index_params_;
-        int indexparams_size = index_params_.size();
-        outfile->write(reinterpret_cast<char *>(&indexparams_size), sizeof(int));  //store the parameter string
-        for (std::map<std::string, any>::iterator iter = index_params_.begin(); iter != index_params_.end(); ++iter)
-        {
-            int length = iter->first.length();
-            outfile->write(reinterpret_cast<char *>(&length), sizeof(int));  //store the parameter string
-            outfile->write(iter->first.data(), iter->first.length());  //store the parameter string
-            outfile->write(reinterpret_cast<char *>(&iter->second), sizeof(any));  //store the value
-        }
+        // int indexparams_size = index_params_.size();
+        // outfile->write(reinterpret_cast<char *>(&indexparams_size), sizeof(int));  //store the parameter string
+        // for (std::map<std::string, any>::iterator iter = index_params_.begin(); iter != index_params_.end(); ++iter)
+        // {
+        //     int length = iter->first.length();
+        //     outfile->write(reinterpret_cast<char *>(&length), sizeof(int));  //store the parameter string
+        //     outfile->write(iter->first.data(), iter->first.length());  //store the parameter string
+        //     outfile->write(reinterpret_cast<char *>(&iter->second), sizeof(any));  //store the value
+        // }
 
         outfile->write(reinterpret_cast<char *>(&this->removed_), sizeof(bool));
         //DynamicBitset removed_points_;  //should be 0, so do not store
@@ -1429,49 +1434,50 @@ private:
         //unmap the memory
         munmap(addr,length);
 
-        std::ofstream *idfile;
-        idfile = new std::ofstream();
-        idfile->open("ref_points.dat", std::ios::out | std::ios::binary | std::ios::trunc);
-        for (unsigned int i = 0; i < points_.size(); i++)
-        {
-            idfile->write(reinterpret_cast<char *>(points_[i]), sizeof(float)*256);
-        }
-        idfile->close();
+        // std::ofstream *idfile;
+        // idfile = new std::ofstream();
+        // idfile->open("ref_points.dat", std::ios::out | std::ios::binary | std::ios::trunc);
+        // for (unsigned int i = 0; i < points_.size(); i++)
+        // {
+        //     idfile->write(reinterpret_cast<char *>(points_[i]), sizeof(float)*256);
+        // }
+        // idfile->close();
     }
 
     ///////////////////////////////////////////////////////////////////////
     //load_index
-    virtual void load_index(std::ifstream *infile)
+    virtual void load_index(std::ifstream *infile, char* data_ptr)
     {
         load_cached = 1;
         auto t1 = std::chrono::high_resolution_clock::now();
 
         //Call mmap() to have the memory block allocated at the same starting address.
-        int *addr;
-        unsigned long long int starting_addr = STARTING_ADDR;
-        int length = 1300000000;
-        addr = (int *)mmap((void *)starting_addr, length, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
-        if (addr == MAP_FAILED)
-        {
-            std::cout << "Error" << std::endl;
-            exit(EXIT_FAILURE);
-        } 
-        else 
-        {
-            std::cout << "Successful mapping to: " << addr << std::endl;
-        }
+        // char *addr;
+        // unsigned long long int starting_addr = STARTING_ADDR;
+        // unsigned int length = 1300000000;
+        // addr = (char *) mmap((void *)starting_addr, length, PROT_READ | PROT_WRITE, MAP_FIXED | MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+        // if (addr == MAP_FAILED)
+        // {
+        //     std::cout << "Error" << std::endl;
+        //     exit(EXIT_FAILURE);
+        // } 
+        // else 
+        // {
+        //     std::cout << "Successful mapping to: " << (unsigned long long) addr << std::endl;
+        // }
 
-        //read in all the visual words from a file
-        int point_size;
-        infile->read(reinterpret_cast<char *>(&point_size), sizeof(int));
+        // //read in all the visual words from a file
+        // int point_size;
+        // infile->read(reinterpret_cast<char *>(&point_size), sizeof(int));
 
-        float* data_ptr = (float*) starting_addr;
-        for (int i=0; i<point_size; i++) 
-        {
-            points_[i] = (ElementType*) data_ptr;
-            infile->read(reinterpret_cast<char *>(data_ptr), 256 * sizeof(float));
-            data_ptr += 256;
-        }
+        // float* data_ptr = reinterpret_cast<float*> (addr);
+        // for (int i=0; i<point_size; i++) 
+        // {
+        //     points_[i] = (ElementType*) data_ptr;
+        //     infile->read(reinterpret_cast<char *>(data_ptr), 256 * sizeof(float));
+        //     data_ptr += 256;
+        // }
+
 
         // std::ofstream *idfile;
         // idfile = new std::ofstream();
@@ -1484,8 +1490,8 @@ private:
 
         //read in the tree data for 4 trees
         std::cout << "--------size of trees_----------" << trees_ << std::endl;
+        //this->tree_roots_.resize(trees_);
         this->tree_roots_.resize(trees_);
-        //tree_roots_.clear();
         NodePtr root[4] = {NULL, NULL, NULL, NULL};
         char* t_ptr = (char*) data_ptr;
         for (int i=0; i<4; i++) //number of trees
@@ -1493,9 +1499,9 @@ private:
             int tree_size = 0;
             infile->read(reinterpret_cast<char *>(&tree_size), sizeof(int));  //read in the tree size in bytes
             std::cout << "loading tree size: " << tree_size << std::endl;
-            infile->read(reinterpret_cast<char *>(&root[i]), sizeof(NodePtr));  //read in the root node pointer address
+            infile->read(reinterpret_cast<char *>(&(root[i])), sizeof(NodePtr));  //read in the root node pointer address
             std::cout << "root address: " << root[i] << std::endl;
-            this->tree_roots_.assign(i,(NodePtr) root[i]);
+            this->tree_roots_.assign(i,root[i]);
             // tree_roots_[i] = root[i];
 
             t_ptr += sizeof(int) + sizeof(struct Node *);
@@ -1516,22 +1522,22 @@ private:
         infile->read(reinterpret_cast<char *>(&this->veclen_), sizeof(size_t));
 
         //IndexParams index_params_;
-        int indexparams_size;
-        infile->read(reinterpret_cast<char *>(&indexparams_size), sizeof(int));  //restore the size of the parameters
-        for (int i=0; i<indexparams_size; i++)
-        {
-            char buf[100];
-            int length;
-            infile->read(reinterpret_cast<char *>(&length), sizeof(int));  //read the length of the parameter string
-            infile->read(reinterpret_cast<char *>(buf), length);  //read the parameter string
-            buf[length] = 0; //NULL terminate the string;
-            std::string s(buf);
-            // any a;
-            infile->read(reinterpret_cast<char *>(buf), sizeof(any));  //read the parameter value
+        // int indexparams_size;
+        // infile->read(reinterpret_cast<char *>(&indexparams_size), sizeof(int));  //restore the size of the parameters
+        // for (int i=0; i<indexparams_size; i++)
+        // {
+        //     char buf[100];
+        //     int length;
+        //     infile->read(reinterpret_cast<char *>(&length), sizeof(int));  //read the length of the parameter string
+        //     infile->read(reinterpret_cast<char *>(buf), length);  //read the parameter string
+        //     buf[length] = 0; //NULL terminate the string;
+        //     std::string s(buf);
+        //     // any a;
+        //     infile->read(reinterpret_cast<char *>(buf), sizeof(any));  //read the parameter value
 
-            //TODO - index_params is already set on construction, so do not modify it
-            // index_params_.insert(std::pair<std::string,any>(s,a));
-        }
+        //     //TODO - index_params is already set on construction, so do not modify it
+        //     // index_params_.insert(std::pair<std::string,any>(s,a));
+        // }
 
         infile->read(reinterpret_cast<char *>(&this->removed_), sizeof(bool));
         //DynamicBitset removed_points_;  //should be 0, so do not store
@@ -1546,6 +1552,10 @@ private:
         auto t2 = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double, std::milli> fp_ms = t2 - t1;
         std::cout << "flann index load time in milliseconds: " << fp_ms.count() << std::endl;
+    }
+
+    virtual void set_cached (int cache) {
+        this->cached = cache;
     }
 
 private:

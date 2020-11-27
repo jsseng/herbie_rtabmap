@@ -35,6 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "rtabmap/core/Compression.h"
 #include "DatabaseSchema_sql.h"
 #include <set>
+#include <chrono>
 
 #include "rtabmap/utilite/UtiLite.h"
 
@@ -2833,6 +2834,7 @@ void DBDriverSqlite3::getWeightQuery(int nodeId, int & weight) const
 void DBDriverSqlite3::loadSignaturesQuery(const std::list<int> & ids, std::list<Signature *> & nodes) const
 {
 	ULOGGER_DEBUG("count=%d", (int)ids.size());
+	auto t1 = std::chrono::high_resolution_clock::now();
 	if(_ppDb && ids.size())
 	{
 		std::string type;
@@ -3025,6 +3027,9 @@ void DBDriverSqlite3::loadSignaturesQuery(const std::list<int> & ids, std::list<
 			rc = sqlite3_reset(ppStmt);
 			UASSERT_MSG(rc == SQLITE_OK, uFormat("DB error (%s): %s", _version.c_str(), sqlite3_errmsg(_ppDb)).c_str());
 		}
+		auto t2 = std::chrono::high_resolution_clock::now();
+		std::chrono::duration<double, std::milli> fp_ms = t2 - t1;
+		std::cout << "load signature 1 time in milliseconds: " << fp_ms.count() << std::endl;
 
 		// Finalize (delete) the statement
 		rc = sqlite3_finalize(ppStmt);
@@ -3193,6 +3198,9 @@ void DBDriverSqlite3::loadSignaturesQuery(const std::list<int> & ids, std::list<
 			rc = sqlite3_reset(ppStmt);
 			UASSERT_MSG(rc == SQLITE_OK, uFormat("DB error (%s): %s", _version.c_str(), sqlite3_errmsg(_ppDb)).c_str());
 		}
+		auto t3 = std::chrono::high_resolution_clock::now();
+		std::chrono::duration<double, std::milli> fp_ms1 = t3 - t1;
+		std::cout << "load signature 2 time in milliseconds: " << fp_ms1.count() << std::endl;
 
 		// Finalize (delete) the statement
 		rc = sqlite3_finalize(ppStmt);
@@ -3459,6 +3467,10 @@ void DBDriverSqlite3::loadSignaturesQuery(const std::list<int> & ids, std::list<
 			UERROR("Some signatures not found in database");
 		}
 	}
+
+	auto t2 = std::chrono::high_resolution_clock::now();
+	std::chrono::duration<double, std::milli> fp_ms = t2 - t1;
+	std::cout << "load signature total time in milliseconds: " << fp_ms.count() << std::endl;
 }
 
 void DBDriverSqlite3::loadLastNodesQuery(std::list<Signature *> & nodes) const

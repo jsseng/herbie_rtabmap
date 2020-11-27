@@ -88,12 +88,16 @@ public:
         nnIndex_->save_index(outfile);
     }
 
-    void load_index(std::ifstream *infile) {
-        nnIndex_->load_index(infile);
+    void load_index(std::ifstream *infile, char *data_ptr) {
+        nnIndex_->load_index(infile, data_ptr);
     }
 
     void debug() {
         nnIndex_->debug_index();
+    }
+
+    void set_cached(int cache) {
+        nnIndex_->set_cached(cache);
     }
 
     Index(const IndexParams& params, Distance distance = Distance() )

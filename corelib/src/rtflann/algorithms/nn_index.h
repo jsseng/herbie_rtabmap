@@ -81,8 +81,9 @@ public:
     typedef typename Distance::ResultType DistanceType;
 
 	virtual void debug_index() {}
+	virtual void set_cached(int cache) {}
 	virtual void save_index(std::ofstream *outfile) {}
-	virtual void load_index(std::ifstream *infile) {}
+	virtual void load_index(std::ifstream *infile, char *data_ptr) {}
 
 	NNIndex(Distance d) : distance_(d), last_id_(0), size_(0), size_at_build_(0), veclen_(0),
 			removed_(false), removed_count_(0), data_ptr_(NULL)
@@ -133,6 +134,7 @@ public:
 	 */
 	virtual void buildIndex()
 	{
+		std::cout << "-----running buildIndex()------------" << std::endl;
     	freeIndex();
     	cleanRemovedPoints();
 
@@ -900,6 +902,7 @@ protected:
     ElementType* data_ptr_;
 
     //PooledAllocator pool_;
+	int cached;  //1 if this index is cached, so do not rebuild (otherwise this int is 0)
 
 };
 

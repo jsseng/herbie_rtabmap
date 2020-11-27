@@ -65,6 +65,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <rtabmap/core/MarkerDetector.h>
 #include <opencv2/imgproc/types_c.h>
 
+#include <unistd.h>
+
 namespace rtabmap {
 
 const int Memory::kIdStart = 0;
@@ -357,7 +359,7 @@ void Memory::loadDataFromDb(bool postInitClosingEvents)
 		if(postInitClosingEvents) UEventsManager::post(new RtabmapEventInit("Loading dictionary..."));
 		UDEBUG("Loading dictionary...");
 
-		int load_cache = 0;
+		int load_cache = 1;
 		int build_cache = 1;
 		if (load_cache == 0) {
 			if (loadAllNodesInWM)
@@ -459,12 +461,6 @@ void Memory::loadDataFromDb(bool postInitClosingEvents)
 		{
 			_vwd->load_vwdictionary();
 
-			if (postInitClosingEvents)
-				UEventsManager::post(new RtabmapEventInit(uFormat("Loading dictionary, done! (%d words)", (int)_vwd->getUnusedWordsSize())));
-
-			if (postInitClosingEvents)
-				UEventsManager::post(new RtabmapEventInit(std::string("Adding word references...")));
-
 			//FIXME
 			const std::map<int, Signature *> &signatures = this->getSignatures();
 			for (std::map<int, Signature *>::const_iterator i = signatures.begin(); i != signatures.end(); ++i)
@@ -479,6 +475,14 @@ void Memory::loadDataFromDb(bool postInitClosingEvents)
 					s->setEnabled(true);
 				}
 			}
+
+			std::cout << "last signature: " << _lastSignature << std::endl;
+			sleep(1);
+			if (postInitClosingEvents)
+				UEventsManager::post(new RtabmapEventInit(uFormat("Loading dictionary, done! (%d words)", (int)_vwd->getUnusedWordsSize())));
+
+			if (postInitClosingEvents)
+				UEventsManager::post(new RtabmapEventInit(std::string("Adding word references...")));
 
 			if (postInitClosingEvents)
 				UEventsManager::post(new RtabmapEventInit(uFormat("Adding word references, done! (%d)", _vwd->getTotalActiveReferences())));
