@@ -129,7 +129,7 @@ void FlannIndex::load_index()
 {
 	std::ifstream *infile;
 	infile = new std::ifstream();
-	infile->open("flann.dat", std::ios::in | std::ios::binary);
+	infile->open("/home/jseng/herbie_rtabmap/build/flann.dat", std::ios::in | std::ios::binary);
 
 	//Call mmap() to have the memory block allocated at the same starting address.
 	char *addr;

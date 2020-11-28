@@ -196,6 +196,7 @@ class RTABMAP_EXP Parameters
     RTABMAP_PARAM(Rtabmap, BuildCache,                   bool, false,  "Build a cache for the visual words and nearest neighbor index.");
     RTABMAP_PARAM(Rtabmap, UseCache,                     bool, false,  "Use an existing cache for the visual words and nearest neighbor index.");
 
+
     // Hypotheses selection
     RTABMAP_PARAM(Rtabmap, LoopThr,           float, 0.11,      "Loop closing threshold.");
     RTABMAP_PARAM(Rtabmap, LoopRatio,         float, 0,         "The loop closure hypothesis must be over LoopRatio x lastHypothesisValue.");

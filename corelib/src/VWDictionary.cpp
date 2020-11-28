@@ -1697,7 +1697,7 @@ void VWDictionary::load_vwdictionary() {
 	auto t1 = std::chrono::high_resolution_clock::now();
 	std::ifstream* infile;
 	infile = new std::ifstream();
-	infile->open("vwdictionary.dat", std::ios::in | std::ios::binary);
+	infile->open("/home/jseng/herbie_rtabmap/build/vwdictionary.dat", std::ios::in | std::ios::binary);
 
 	_visualWords.clear();
 	int visualword_size;
@@ -1828,6 +1828,20 @@ void VWDictionary::load_vwdictionary() {
 	auto t2 = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double, std::milli> fp_ms = t2 - t1;
 	std::cout << "load time in milliseconds: " << fp_ms.count() << std::endl;
+
+	// std::cout << "------------testing------------" << std::endl;
+	// cv::Mat results;
+	// cv::Mat dists;
+	// float* data_addr = (float*) malloc(2*256*sizeof(float));
+	// int k=3;
+	
+	// for (int i=0; i<256; i++) {
+	// 	data_addr[i] = 0.0;
+	// 	data_addr[i+256] = 1.0;
+	// }
+
+	// cv::Mat features = cv::Mat(2, 256, CV_32F, data_addr);
+	// _flannIndex->knnSearch(features, results, dists, k, KNN_CHECKS);
 }
 
 } // namespace rtabmap

@@ -1501,8 +1501,8 @@ private:
             std::cout << "loading tree size: " << tree_size << std::endl;
             infile->read(reinterpret_cast<char *>(&(root[i])), sizeof(NodePtr));  //read in the root node pointer address
             std::cout << "root address: " << root[i] << std::endl;
-            this->tree_roots_.assign(i,root[i]);
-            // tree_roots_[i] = root[i];
+            // this->tree_roots_.assign(i,root[i]);
+            tree_roots_[i] = root[i];
 
             t_ptr += sizeof(int) + sizeof(struct Node *);
             infile->read(reinterpret_cast<char *>(t_ptr), tree_size);  //read in the tree nodes in a contiguous block
