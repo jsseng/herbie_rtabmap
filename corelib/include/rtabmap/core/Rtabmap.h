@@ -353,7 +353,9 @@ private:
 	Transform _pathTransformToGoal;
 	int _pathStuckCount;
 	float _pathStuckDistance;
-
+	
+	bool _buildCache;
+	bool _useCache;
 };
 
 } // namespace rtabmap

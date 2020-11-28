@@ -67,6 +67,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <unistd.h>
 
+extern bool _useCache;
+extern bool _buildCache;
+
 namespace rtabmap {
 
 const int Memory::kIdStart = 0;
@@ -359,9 +362,7 @@ void Memory::loadDataFromDb(bool postInitClosingEvents)
 		if(postInitClosingEvents) UEventsManager::post(new RtabmapEventInit("Loading dictionary..."));
 		UDEBUG("Loading dictionary...");
 
-		int load_cache = 1;
-		int build_cache = 1;
-		if (load_cache == 0) {
+		if (_useCache == false) { //if the cache is disabled, then run the regular code
 			if (loadAllNodesInWM)
 			{
 				UDEBUG("load all referenced words in working memory");
@@ -382,6 +383,11 @@ void Memory::loadDataFromDb(bool postInitClosingEvents)
 				}
 
 				UDEBUG("load words %d", (int)wordIds.size());
+				if (_vwd->isIncremental() == true)
+					std::cout << "------isIncremental() memory is true--------" << std::endl;
+				else
+					std::cout << "------isIncremental() memory is false--------" << std::endl;
+
 				if (_vwd->isIncremental())
 				{
 					if (wordIds.size())
@@ -451,17 +457,16 @@ void Memory::loadDataFromDb(bool postInitClosingEvents)
 			}
 			UDEBUG("Total word references added = %d", _vwd->getTotalActiveReferences());
 
-			if (build_cache == 1)
+			if (_buildCache == true) //construct the cache after the visual word dictionary and flann index are built
 			{
-				// get_vwdictionary_info(_vwd); //JS
 				_vwd->save_vwdictionary();
 			}
 		}
 		else
 		{
-			_vwd->load_vwdictionary();
+			_vwd->load_vwdictionary(); //load data from the cache
 
-			//FIXME
+			//Enable loaded signatures
 			const std::map<int, Signature *> &signatures = this->getSignatures();
 			for (std::map<int, Signature *>::const_iterator i = signatures.begin(); i != signatures.end(); ++i)
 			{
@@ -476,8 +481,6 @@ void Memory::loadDataFromDb(bool postInitClosingEvents)
 				}
 			}
 
-			std::cout << "last signature: " << _lastSignature << std::endl;
-			sleep(1);
 			if (postInitClosingEvents)
 				UEventsManager::post(new RtabmapEventInit(uFormat("Loading dictionary, done! (%d words)", (int)_vwd->getUnusedWordsSize())));
 
@@ -784,6 +787,11 @@ void Memory::parseParameters(const ParametersMap & parameters)
 		}
 		_incrementalMemory = value;
 	}
+
+	if (_incrementalMemory == true)
+		std::cout << "------incremental memory is true--------" << std::endl;
+	else
+		std::cout << "------incremental memory is false--------" << std::endl;
 
 	if(_useOdometryFeatures)
 	{

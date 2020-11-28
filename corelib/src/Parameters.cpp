@@ -45,6 +45,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <vtkVersion.h>
 #endif
 
+bool _useCache;
+bool _buildCache;
+
 namespace rtabmap
 {
 
@@ -1044,6 +1047,24 @@ ParametersMap Parameters::parseArguments(int argc, char * argv[], bool onlyParam
 					{
 						uInsert(out, ParametersPair(iter->first, argv[i]));
 						UINFO("Parsed parameter \"%s\"=\"%s\"", iter->first.c_str(), argv[i]);
+
+						//JS set buildcache and usecache
+						if (iter->first.compare("Rtabmap/BuildCache") == 0) {
+							std::cout << "here..........." << std::endl;
+							if (strcmp(argv[i], "true") == 0) {
+								_buildCache = true;
+							} else {
+								_buildCache = false;
+							}
+						}
+						if (iter->first.compare("Rtabmap/UseCache") == 0) {
+							std::cout << "here..........." << std::endl;
+							if (strcmp(argv[i], "true") == 0) {
+								_useCache = true;
+							} else {
+								_useCache = false;
+							}
+						}
 					}
 				}
 				else
