@@ -1,3 +1,30 @@
+# Cached RTABMAP
+
+This is a fork of RTABMAP that caches datafiles for fast initialization on startup.  The code assumes that you have built a map using RTABMAP already and would like to use the map just for localization.
+
+### Notes
+
+* The code currently supports only ORB features (256-bit binary descriptors)
+* Benchmarking
+  * Without the cache, startup time were about 10 seconds (on an Intel Xeon E5-1620).  With the cache, startup time are about 0.7 seconds.
+
+### Usage
+
+* Once you have built a map, build the cache files using:
+
+```
+rtabmap  --Mem/IncrementalMemory false --Mem/InitWMWithAllNodes true --Rtabmap/BuildCache true database.db
+```
+
+When this command is run, is will load the database file and build the cached data files.  You should see the new files: `vwdictionary.dat` and `flann.dat` created in your directory.  You can close RTABMAP once the database has loaded.
+
+* To start RTABMAP with the cache files:
+
+```
+rtabmap  --Mem/IncrementalMemory false --Mem/InitWMWithAllNodes true --Rtabmap/UseCache true database.db
+```
+
+
 rtabmap ![Analytics](https://ga-beacon-279122.nn.r.appspot.com/UA-56986679-3/github-main?pixel) 
 =======
 
