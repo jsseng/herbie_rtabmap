@@ -6,7 +6,7 @@ This is a fork of RTABMAP that caches datafiles for fast initialization on start
 
 * The code currently supports only ORB features (256-bit binary descriptors)
 * Benchmarking
-  * Without the cache, startup time were about 10 seconds (on an Intel Xeon E5-1620).  With the cache, startup time are about 0.7 seconds.
+  * Without the cache, startup times were about 25 seconds (on an Intel Xeon E5-1620).  With the cache, startup times are about 3 seconds.
 
 ### Usage
 
