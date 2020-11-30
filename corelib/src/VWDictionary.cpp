@@ -1821,13 +1821,14 @@ void VWDictionary::load_vwdictionary() {
 
 	_dataTree = cv::Mat();
 
+	auto t2 = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double, std::milli> fp_ms = t2 - t1;
+	std::cout << "vwdictionary load time in milliseconds: " << fp_ms.count() << std::endl;
+
 	//load the flann index data
 	_flannIndex = new FlannIndex();
 	_flannIndex->load_index();
 
-	auto t2 = std::chrono::high_resolution_clock::now();
-    std::chrono::duration<double, std::milli> fp_ms = t2 - t1;
-	std::cout << "load time in milliseconds: " << fp_ms.count() << std::endl;
 
 	// std::cout << "------------testing------------" << std::endl;
 	// cv::Mat results;

@@ -151,7 +151,7 @@ void FlannIndex::load_index()
 	else
 	{
 		std::cout << "Successful mapping to: " << (unsigned long long)addr << std::endl;
-		//madvise(addr, length, MADV_SEQUENTIAL);
+		madvise(addr, length, MADV_SEQUENTIAL); //mmap hint for sequential page accesses
 	}
 
 	//read in all the visual words from a file
