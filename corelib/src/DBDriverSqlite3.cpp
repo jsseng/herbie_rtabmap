@@ -3318,6 +3318,9 @@ void DBDriverSqlite3::loadSignaturesQuery(const std::list<int> & ids, std::list<
 				int total_rows;
 
 				infile->read(reinterpret_cast<char *>(&total_rows), sizeof(int)); //number of rows for this signature
+				unsigned char arr[100];
+				int *ptr_int;
+				double *ptr_double;
 
 				for (int i=0; i<total_rows; i++)
 				{
@@ -3332,6 +3335,46 @@ void DBDriverSqlite3::loadSignaturesQuery(const std::list<int> & ids, std::list<
 					infile->read(reinterpret_cast<char *>(&(depth.y)), sizeof(double));      //depth.y
 					infile->read(reinterpret_cast<char *>(&(depth.z)), sizeof(double));      //depth.z
 
+					//////////////////////////////////////////////////////////
+					//Optimized version
+					// infile->read(reinterpret_cast<char *>(arr), sizeof(double)*7 + sizeof(int)*3);      //depth.z
+					// ptr_int = (int*) arr;
+
+					// visualWordId = *ptr_int;
+					// ptr_int++;
+
+					// ptr_double = (double*) ptr_int;
+					// kpt.pt.x = *ptr_double;
+					// ptr_double++;
+
+					// kpt.pt.y = *ptr_double;
+					// ptr_double++;
+					// ptr_int = (int*) ptr_double;
+
+					// kpt.size = *ptr_int;
+					// ptr_int++;
+					// ptr_double = (double*) ptr_int;
+
+					// kpt.angle = *ptr_double;
+					// ptr_double++;
+
+					// kpt.response = *ptr_double;
+					// ptr_double++;
+					// ptr_int = (int*) ptr_double;
+
+					// kpt.octave = *ptr_int;
+					// ptr_int++;
+					// ptr_double = (double*) ptr_int;
+
+					// depth.x = *ptr_double;
+					// ptr_double++;
+
+					// depth.y = *ptr_double;
+					// ptr_double++;
+
+					// depth.z = *ptr_double;
+					// ptr_double++;
+
 					visualWordsKpts.push_back(kpt);
 					visualWords.insert(visualWords.end(), std::make_pair(visualWordId, visualWordsKpts.size() - 1));
 					visualWords3.push_back(depth);
@@ -3341,36 +3384,36 @@ void DBDriverSqlite3::loadSignaturesQuery(const std::list<int> & ids, std::list<
 						allWords3NaN = false;
 					}
 
-					if (uStrNumCmp(_version, "0.11.2") >= 0)
+					//load the descriptor
+					char has_descriptor;
+					infile->read(reinterpret_cast<char *>(&has_descriptor), sizeof(char)); //if non-zero, then there is a following descriptor
+
+					if (has_descriptor != 0)
 					{
-						char has_descriptor;
-						infile->read(reinterpret_cast<char *>(&has_descriptor), sizeof(char)); //if non-zero, then there is a following descriptor
+						infile->read(reinterpret_cast<char *>(&descriptorSize), sizeof(int)); //descriptorSize
+						infile->read(reinterpret_cast<char *>(&dRealSize), sizeof(int));	  //dRealSize
 
-						if (has_descriptor != 0) {
-							infile->read(reinterpret_cast<char *>(&descriptorSize), sizeof(int)); //descriptorSize
-							infile->read(reinterpret_cast<char *>(&dRealSize), sizeof(int));	  //dRealSize
-
-							if (descriptorSize > 0 && dRealSize > 0)
+						if (descriptorSize > 0 && dRealSize > 0)
+						{
+							cv::Mat d;
+							// if (dRealSize == descriptorSize)
+							if (dRealSize == descriptorSize)
 							{
-								cv::Mat d;
-								if (dRealSize == descriptorSize)
-								{
-									// CV_8U binary descriptors
-									d = cv::Mat(1, descriptorSize, CV_8U);
-								}
-								else if (dRealSize / int(sizeof(float)) == descriptorSize)
-								{
-									// CV_32F
-									d = cv::Mat(1, descriptorSize, CV_32F);
-								}
-								else
-								{
-									UFATAL("Saved buffer size (%d bytes) is not the same as descriptor size (%d)", dRealSize, descriptorSize);
-								}
-
-								infile->read(reinterpret_cast<char *>(d.data), dRealSize); //read in the descriptor data
-								descriptors.push_back(d);
+								// CV_8U binary descriptors
+								d = cv::Mat(1, descriptorSize, CV_8U);
 							}
+							else if (dRealSize / int(sizeof(float)) == descriptorSize)
+							{
+								// CV_32F
+								d = cv::Mat(1, descriptorSize, CV_32F);
+							}
+							else
+							{
+								UFATAL("Saved buffer size (%d bytes) is not the same as descriptor size (%d)", dRealSize, descriptorSize);
+							}
+
+							infile->read(reinterpret_cast<char *>(d.data), dRealSize); //read in the descriptor data
+							descriptors.push_back(d);
 						}
 					}
 				}

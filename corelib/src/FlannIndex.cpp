@@ -28,6 +28,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <rtabmap/core/FlannIndex.h>
 #include <rtabmap/utilite/ULogger.h>
 
+#include "rtabmap/utilite/UtiLite.h"
+
 #include "rtflann/flann.hpp"
 #include <sys/mman.h>
 
@@ -91,12 +93,17 @@ void FlannIndex::debug()
 
 void FlannIndex::save_index()
 {
+	//Check if the number of words, is too big for an unsigned int.  If 
+	//the number is too large, it only affects the loading of the cached
+	//file
+	int indexsize = ((rtflann::Index<rtflann::L1<float>> *)index_)->size();
+	UASSERT_MSG((indexsize*256*sizeof(float)) < INT_MAX, uFormat("Number of visual words is too big for the current cache implementation"));
+
 	std::ofstream *outfile;
 	outfile = new std::ofstream();
 	outfile->open("flann.dat", std::ios::out | std::ios::binary | std::ios::trunc);
 	((rtflann::Index<rtflann::L1<float>> *)index_)->save_index(outfile);
 
-	//FIXME - save variables in FlannIndex
 	//unsigned int nextIndex_;
 	outfile->write(reinterpret_cast<char *>(&nextIndex_), sizeof(unsigned int));
 
@@ -144,6 +151,7 @@ void FlannIndex::load_index()
 	else
 	{
 		std::cout << "Successful mapping to: " << (unsigned long long)addr << std::endl;
+		//madvise(addr, length, MADV_SEQUENTIAL);
 	}
 
 	//read in all the visual words from a file
@@ -151,11 +159,13 @@ void FlannIndex::load_index()
 	infile->read(reinterpret_cast<char *>(&point_size), sizeof(int));
 
 	float *data_ptr = reinterpret_cast<float *>(addr);
-	for (int i = 0; i < point_size; i++)
-	{
-		infile->read(reinterpret_cast<char *>(data_ptr), 256 * sizeof(float));
-		data_ptr += 256;
-	}
+	// for (int i = 0; i < point_size; i++)
+	// {
+	// 	infile->read(reinterpret_cast<char *>(data_ptr), 256 * sizeof(float));
+	// 	data_ptr += 256;
+	// }
+	infile->read(reinterpret_cast<char *>(data_ptr), point_size * 256 * sizeof(float));
+	data_ptr += point_size * 256;
 
 	//create a Matrix from the data
 	cv::Mat features = cv::Mat(point_size, 256, CV_32F, addr);
@@ -175,7 +185,6 @@ void FlannIndex::load_index()
 	char* var_start_ptr = (char*) (starting_addr + point_size*256*sizeof(float)); 
 	((rtflann::Index<rtflann::L1<float>> *)index_)->load_index(infile, var_start_ptr);
 
-	//FIXME - load variables in FlannIndex
 	//unsigned int nextIndex_;
 	infile->read(reinterpret_cast<char *>(&nextIndex_), sizeof(unsigned int));
 

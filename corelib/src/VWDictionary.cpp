@@ -1716,19 +1716,19 @@ void VWDictionary::load_vwdictionary() {
 	}
 	
 	infile->read(reinterpret_cast<char *> (&_incrementalDictionary),sizeof(bool)); //_incrementalDictionary
-	std::cout << "restored _incrementalDictionary factor: " << _incrementalDictionary << std::endl;
+	// std::cout << "restored _incrementalDictionary factor: " << _incrementalDictionary << std::endl;
 
 	infile->read(reinterpret_cast<char *> (&_incrementalFlann),sizeof(bool)); //_incrementalFlann
-	std::cout << "restored _incrementalFlann: " << _incrementalFlann << std::endl;
+	// std::cout << "restored _incrementalFlann: " << _incrementalFlann << std::endl;
 
 	infile->read(reinterpret_cast<char *> (&_rebalancingFactor),sizeof(float)); //_rebalancingFactor
-	std::cout << "restored rebalancing factor: " << _rebalancingFactor << std::endl;
+	// std::cout << "restored rebalancing factor: " << _rebalancingFactor << std::endl;
 
 	infile->read(reinterpret_cast<char *> (&_byteToFloat),sizeof(bool)); //_byteToFloat
-	std::cout << "restored _byteToFloat: " << _byteToFloat << std::endl;
+	// std::cout << "restored _byteToFloat: " << _byteToFloat << std::endl;
 
 	infile->read(reinterpret_cast<char *> (&_nndrRatio),sizeof(float)); //_nndrRatio
-	std::cout << "restored _nndrRatio : " << _nndrRatio << std::endl;
+	// std::cout << "restored _nndrRatio : " << _nndrRatio << std::endl;
 
 	char temp_string[100];
 	int dictionarypath_length;
@@ -1744,13 +1744,13 @@ void VWDictionary::load_vwdictionary() {
 	_newDictionaryPath = temp_string;
 
 	infile->read(reinterpret_cast<char *> (&_newWordsComparedTogether),sizeof(bool)); //_newWordsCompareTogether
-	std::cout << "restored _newWordsComparedTogether: " << _newWordsComparedTogether << std::endl;
+	// std::cout << "restored _newWordsComparedTogether: " << _newWordsComparedTogether << std::endl;
 
 	infile->read(reinterpret_cast<char *> (&_lastWordId),sizeof(int)); //_lastWordId
-	std::cout << "restored _lastWordId: " << _lastWordId << std::endl;
+	// std::cout << "restored _lastWordId: " << _lastWordId << std::endl;
 
 	infile->read(reinterpret_cast<char *> (&useDistanceL1_),sizeof(bool)); //useDistanceL1_
-	std::cout << "restored useDistanceL1_: " << useDistanceL1_ << std::endl;
+	// std::cout << "restored useDistanceL1_: " << useDistanceL1_ << std::endl;
 
 	int strat;
 	infile->read(reinterpret_cast<char *> (&strat),sizeof(int)); //useDistanceL1_
@@ -1784,7 +1784,7 @@ void VWDictionary::load_vwdictionary() {
 	_unusedWords.clear();
 	int unusedwords_size;
 	infile->read(reinterpret_cast<char *>(&unusedwords_size), sizeof(int));  //read in the number of visual words
-	std::cout << "restored unused word size: " << unusedwords_size << std::endl;
+	// std::cout << "restored unused word size: " << unusedwords_size << std::endl;
 	for(int i=0; i<unusedwords_size; i++) 
 	{
 		cv::Mat d;	
@@ -1799,7 +1799,7 @@ void VWDictionary::load_vwdictionary() {
 	_notIndexedWords.clear();
 	int notIndexedWords_size;
 	infile->read(reinterpret_cast<char *>(&notIndexedWords_size), sizeof(int));
-	std::cout << "restored notIndexed size: " << notIndexedWords_size << std::endl;
+	// std::cout << "restored notIndexed size: " << notIndexedWords_size << std::endl;
 	for(int i=0; i<notIndexedWords_size; i++)
 	{
 		infile->read(reinterpret_cast<char*> (&tempa),sizeof(int));
@@ -1810,7 +1810,7 @@ void VWDictionary::load_vwdictionary() {
 	_removedIndexedWords.clear();
 	int removedIndexedWords_size;
 	infile->read(reinterpret_cast<char *>(&removedIndexedWords_size), sizeof(int));
-	std::cout << "restored removeIndexed size: " << removedIndexedWords_size << std::endl;
+	// std::cout << "restored removeIndexed size: " << removedIndexedWords_size << std::endl;
 	for(int i=0; i<removedIndexedWords_size; i++)
 	{
 		infile->read(reinterpret_cast<char*> (&tempa),sizeof(int));

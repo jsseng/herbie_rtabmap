@@ -52,7 +52,6 @@
 #include "rtflann/util/random.h"
 #include "rtflann/util/saving.h"
 
-
 using std::cout;
 using std::endl;
 using std::vector;
@@ -1451,46 +1450,8 @@ private:
         load_cached = 1;
         auto t1 = std::chrono::high_resolution_clock::now();
 
-        //Call mmap() to have the memory block allocated at the same starting address.
-        // char *addr;
-        // unsigned long long int starting_addr = STARTING_ADDR;
-        // unsigned int length = 1300000000;
-        // addr = (char *) mmap((void *)starting_addr, length, PROT_READ | PROT_WRITE, MAP_FIXED | MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-        // if (addr == MAP_FAILED)
-        // {
-        //     std::cout << "Error" << std::endl;
-        //     exit(EXIT_FAILURE);
-        // } 
-        // else 
-        // {
-        //     std::cout << "Successful mapping to: " << (unsigned long long) addr << std::endl;
-        // }
-
-        // //read in all the visual words from a file
-        // int point_size;
-        // infile->read(reinterpret_cast<char *>(&point_size), sizeof(int));
-
-        // float* data_ptr = reinterpret_cast<float*> (addr);
-        // for (int i=0; i<point_size; i++) 
-        // {
-        //     points_[i] = (ElementType*) data_ptr;
-        //     infile->read(reinterpret_cast<char *>(data_ptr), 256 * sizeof(float));
-        //     data_ptr += 256;
-        // }
-
-
-        // std::ofstream *idfile;
-        // idfile = new std::ofstream();
-        // idfile->open("test_points.dat", std::ios::out | std::ios::binary | std::ios::trunc);
-        // for (int i = 0; i < point_size; i++)
-        // {
-        //     idfile->write(reinterpret_cast<char *>(points_[i]), sizeof(float)*256);
-        // }
-        // idfile->close();
-
         //read in the tree data for 4 trees
         std::cout << "--------size of trees_----------" << trees_ << std::endl;
-        //this->tree_roots_.resize(trees_);
         this->tree_roots_.resize(trees_);
         NodePtr root[4] = {NULL, NULL, NULL, NULL};
         char* t_ptr = (char*) data_ptr;
@@ -1501,7 +1462,6 @@ private:
             std::cout << "loading tree size: " << tree_size << std::endl;
             infile->read(reinterpret_cast<char *>(&(root[i])), sizeof(NodePtr));  //read in the root node pointer address
             std::cout << "root address: " << root[i] << std::endl;
-            // this->tree_roots_.assign(i,root[i]);
             tree_roots_[i] = root[i];
 
             t_ptr += sizeof(int) + sizeof(struct Node *);
@@ -1551,7 +1511,7 @@ private:
 
         auto t2 = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double, std::milli> fp_ms = t2 - t1;
-        std::cout << "flann index load time in milliseconds: " << fp_ms.count() << std::endl;
+        std::cout << "kd_tree load_index() time in milliseconds: " << fp_ms.count() << std::endl;
     }
 
     virtual void set_cached (int cache) {
