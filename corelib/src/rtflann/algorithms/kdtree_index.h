@@ -1125,32 +1125,6 @@ private:
         std::cout << "size of points_: " << points_.size() << std::endl;
         std::cout << "number of trees: " << trees_ << std::endl;
         std::cout << "number of tree roots: " << tree_roots_.size() << std::endl;
-        
-        // int tree_root_counter = 0;
-        // for (auto it = begin (tree_roots_); it != end (tree_roots_); ++it) {
-        //     std::cout << "tree root: " << tree_root_counter << std::endl;
-        //     std::cout << std::addressof(*it) << std::endl; //print the address of tree root
-        //     std::cout << (*it)->divfeat << std::endl; //print the dividing dimension of the node
-		//     float point1 = (*it)->divval;
-        //     std::cout << point1 << std::endl; //print the threshold value
-                
-        //     //In a kd tree, only the leaf nodes contain data.
-        //     //The non-leaf nodes contain a dimension and threshold value (they do not contain data).
-        //     int depth = 0;
-        //     auto root = (*it);
-        //     while (!(root->child1 == NULL && root->child2 == NULL)) { //traverse left until reaching a leaf node
-        //         if (root->child1 != NULL) {
-        //             root = root->child1;
-        //             depth++;
-        //         } else if (root->child2 != NULL) {
-        //             root = root->child2;
-        //             depth++;
-        //         }
-        //     }
-        //     std::cout << "tree depth: " << depth << std::endl;
-                
-        //     tree_root_counter++;
-        // }
     }
 
     /////////////////////////////////////////////////////////////
@@ -1432,15 +1406,6 @@ private:
 
         //unmap the memory
         munmap(addr,length);
-
-        // std::ofstream *idfile;
-        // idfile = new std::ofstream();
-        // idfile->open("ref_points.dat", std::ios::out | std::ios::binary | std::ios::trunc);
-        // for (unsigned int i = 0; i < points_.size(); i++)
-        // {
-        //     idfile->write(reinterpret_cast<char *>(points_[i]), sizeof(float)*256);
-        // }
-        // idfile->close();
     }
 
     ///////////////////////////////////////////////////////////////////////
@@ -1448,10 +1413,8 @@ private:
     virtual void load_index(std::ifstream *infile, char* data_ptr)
     {
         load_cached = 1;
-        auto t1 = std::chrono::high_resolution_clock::now();
 
         //read in the tree data for 4 trees
-        std::cout << "--------size of trees_----------" << trees_ << std::endl;
         this->tree_roots_.resize(trees_);
         NodePtr root[4] = {NULL, NULL, NULL, NULL};
         char* t_ptr = (char*) data_ptr;
@@ -1459,9 +1422,9 @@ private:
         { 
             int tree_size = 0;
             infile->read(reinterpret_cast<char *>(&tree_size), sizeof(int));  //read in the tree size in bytes
-            std::cout << "loading tree size: " << tree_size << std::endl;
+            //std::cout << "loading tree size: " << tree_size << std::endl;
             infile->read(reinterpret_cast<char *>(&(root[i])), sizeof(NodePtr));  //read in the root node pointer address
-            std::cout << "root address: " << root[i] << std::endl;
+            //std::cout << "root address: " << root[i] << std::endl;
             tree_roots_[i] = root[i];
 
             t_ptr += sizeof(int) + sizeof(struct Node *);
@@ -1508,10 +1471,6 @@ private:
         }
 
         infile->read(reinterpret_cast<char *>(&this->data_ptr_), sizeof(ElementType*));
-
-        auto t2 = std::chrono::high_resolution_clock::now();
-        std::chrono::duration<double, std::milli> fp_ms = t2 - t1;
-        std::cout << "kd_tree load_index() time in milliseconds: " << fp_ms.count() << std::endl;
     }
 
     virtual void set_cached (int cache) {

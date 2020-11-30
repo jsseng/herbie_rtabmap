@@ -157,8 +157,7 @@ public:
     void buildIndex()
     {
         if (!loaded_) {
-            std::cout << "JS----------------(buildIndex() - flann.hpp) Building index---------------" << endl;
-            std::cout << "JS----------------size: " << nnIndex_->size() << endl;
+            // std::cout << "----------------(buildIndex() - flann.hpp) Building index---------------" << endl;
             nnIndex_->buildIndex();
         }
     }

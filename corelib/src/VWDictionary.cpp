@@ -1755,7 +1755,7 @@ void VWDictionary::load_vwdictionary() {
 	int strat;
 	infile->read(reinterpret_cast<char *> (&strat),sizeof(int)); //useDistanceL1_
 	_strategy = static_cast<NNStrategy>(strat);
-	std::cout << "restored _strategy: " << _strategy << std::endl;
+	// std::cout << "restored _strategy: " << _strategy << std::endl;
 
 	//std::map<int, int> _mapIndexId;
 	_mapIndexId.clear();
@@ -1828,21 +1828,6 @@ void VWDictionary::load_vwdictionary() {
 	//load the flann index data
 	_flannIndex = new FlannIndex();
 	_flannIndex->load_index();
-
-
-	// std::cout << "------------testing------------" << std::endl;
-	// cv::Mat results;
-	// cv::Mat dists;
-	// float* data_addr = (float*) malloc(2*256*sizeof(float));
-	// int k=3;
-	
-	// for (int i=0; i<256; i++) {
-	// 	data_addr[i] = 0.0;
-	// 	data_addr[i+256] = 1.0;
-	// }
-
-	// cv::Mat features = cv::Mat(2, 256, CV_32F, data_addr);
-	// _flannIndex->knnSearch(features, results, dists, k, KNN_CHECKS);
 }
 
 } // namespace rtabmap

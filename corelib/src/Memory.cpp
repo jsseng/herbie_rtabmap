@@ -788,10 +788,10 @@ void Memory::parseParameters(const ParametersMap & parameters)
 		_incrementalMemory = value;
 	}
 
-	if (_incrementalMemory == true)
-		std::cout << "------incremental memory is true--------" << std::endl;
-	else
-		std::cout << "------incremental memory is false--------" << std::endl;
+	// if (_incrementalMemory == true)
+	// 	std::cout << "------incremental memory is true--------" << std::endl;
+	// else
+	// 	std::cout << "------incremental memory is false--------" << std::endl;
 
 	if(_useOdometryFeatures)
 	{

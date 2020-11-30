@@ -134,6 +134,7 @@ void FlannIndex::save_index()
 
 void FlannIndex::load_index()
 {
+	auto t1 = std::chrono::high_resolution_clock::now();
 	std::ifstream *infile;
 	infile = new std::ifstream();
 	infile->open("/home/jseng/herbie_rtabmap/build/flann.dat", std::ios::in | std::ios::binary);
@@ -204,6 +205,10 @@ void FlannIndex::load_index()
 	infile->read(reinterpret_cast<char *>(&rebalancingFactor_), sizeof(float));
 
 	infile->close();
+
+	auto t2 = std::chrono::high_resolution_clock::now();
+	std::chrono::duration<double, std::milli> fp_ms = t2 - t1;
+	std::cout << "kd_tree load_index() time in milliseconds: " << fp_ms.count() << std::endl;
 }
 
 unsigned int FlannIndex::indexedFeatures() const
