@@ -1762,23 +1762,49 @@ void VWDictionary::load_vwdictionary() {
 	int tempa, tempb;
 	int mapIndexId_size;
 	infile->read(reinterpret_cast<char *>(&mapIndexId_size), sizeof(int));
+	int* mem_ptr = (int*) malloc(mapIndexId_size * sizeof(int) * 2);
+	int* mem_ptr_temp = mem_ptr;
+	int* mem_ptr_temp2 = mem_ptr + 1;
+	infile->read(reinterpret_cast<char *>(mem_ptr), mapIndexId_size * sizeof(int) * 2);
 	for(int i=0; i<mapIndexId_size; i++)
 	{
-		infile->read(reinterpret_cast<char*> (&tempa),sizeof(int));
-		infile->read(reinterpret_cast<char*> (&tempb),sizeof(int));
-		_mapIndexId.insert(std::pair<int,int>(tempa,tempb));
+		_mapIndexId.insert(std::pair<int,int>(*mem_ptr_temp, *mem_ptr_temp2));
+		mem_ptr_temp += 2;
+		mem_ptr_temp2 += 2;
 	}
+	free(mem_ptr);
+
+	// for(int i=0; i<mapIndexId_size; i++)
+	// {
+	// 	infile->read(reinterpret_cast<char*> (&tempa),sizeof(int));
+	// 	infile->read(reinterpret_cast<char*> (&tempb),sizeof(int));
+	// 	_mapIndexId.insert(std::pair<int,int>(tempa,tempb));
+	// }
 
 	// std::map<int, int> _mapIdIndex;
 	_mapIdIndex.clear();
 	int mapIdIndex_size;
 	infile->read(reinterpret_cast<char *>(&mapIdIndex_size), sizeof(int));
+	mem_ptr = (int*) malloc(mapIdIndex_size * sizeof(int) * 2);
+	mem_ptr_temp = mem_ptr;
+	mem_ptr_temp2 = mem_ptr + 1;
+	infile->read(reinterpret_cast<char *>(mem_ptr), mapIdIndex_size * sizeof(int) * 2);
+	// std::cout << "mapidindex size: " << mapIdIndex_size << std::endl;
+
 	for(int i=0; i<mapIdIndex_size; i++)
 	{
-		infile->read(reinterpret_cast<char*> (&tempa),sizeof(int));
-		infile->read(reinterpret_cast<char*> (&tempb),sizeof(int));
-		_mapIdIndex.insert(std::pair<int,int>(tempa,tempb));
+		_mapIdIndex.insert(std::pair<int,int>(*mem_ptr_temp, *mem_ptr_temp2));
+		mem_ptr_temp += 2;
+		mem_ptr_temp2 += 2;
 	}
+	free(mem_ptr);
+
+	// for(int i=0; i<mapIdIndex_size; i++)
+	// {
+	// 	infile->read(reinterpret_cast<char*> (&tempa),sizeof(int));
+	// 	infile->read(reinterpret_cast<char*> (&tempb),sizeof(int));
+	// 	_mapIdIndex.insert(std::pair<int,int>(tempa,tempb));
+	// }
 
 	// std::map<int, VisualWord *> _unusedWords; //<id,VisualWord*>, note that these words stay in _visualWords
 	_unusedWords.clear();

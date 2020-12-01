@@ -182,6 +182,7 @@ void FlannIndex::load_index()
 
 	((rtflann::Index<rtflann::L1<float>> *)index_)->set_cached(1); //indicate to use a cache index
 	((rtflann::Index<rtflann::L1<float>> *)index_)->buildIndex();
+	// ((rtflann::Index<rtflann::L1<float>> *)index_)->set_cached(0); //indicate to use a cache index
 
 	char* var_start_ptr = (char*) (starting_addr + point_size*256*sizeof(float)); 
 	((rtflann::Index<rtflann::L1<float>> *)index_)->load_index(infile, var_start_ptr);
