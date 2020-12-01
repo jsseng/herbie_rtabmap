@@ -3168,32 +3168,32 @@ void DBDriverSqlite3::loadSignaturesQuery(const std::list<int> & ids, std::list<
 						memcpy(temp_ptr, &visualWordId, sizeof(int)); //visualWordId
 						temp_ptr += sizeof(int);
 
-						memcpy(temp_ptr, &(kpt.pt.x), sizeof(double)); //kpt.pt.x
-						temp_ptr += sizeof(double);
+						memcpy(temp_ptr, &(kpt.pt.x), sizeof(float)); //kpt.pt.x
+						temp_ptr += sizeof(float);
 
-						memcpy(temp_ptr, &(kpt.pt.y), sizeof(double)); //kpt.pt.y
-						temp_ptr += sizeof(double);
+						memcpy(temp_ptr, &(kpt.pt.y), sizeof(float)); //kpt.pt.y
+						temp_ptr += sizeof(float);
 
-						memcpy(temp_ptr, &(kpt.size), sizeof(int)); //kpt.size
+						memcpy(temp_ptr, &(kpt.size), sizeof(float)); //kpt.size
 						temp_ptr += sizeof(int);
 
-						memcpy(temp_ptr, &(kpt.angle), sizeof(double)); //kpt.angle
-						temp_ptr += sizeof(double);
+						memcpy(temp_ptr, &(kpt.angle), sizeof(float)); //kpt.angle
+						temp_ptr += sizeof(float);
 
-						memcpy(temp_ptr, &(kpt.response), sizeof(double)); //kpt.response
-						temp_ptr += sizeof(double);
+						memcpy(temp_ptr, &(kpt.response), sizeof(float)); //kpt.response
+						temp_ptr += sizeof(float);
 
 						memcpy(temp_ptr, &(kpt.octave), sizeof(int)); //kpt.octave
 						temp_ptr += sizeof(int);
 
-						memcpy(temp_ptr, &(depth.x), sizeof(double)); //depth.x
-						temp_ptr += sizeof(double);
+						memcpy(temp_ptr, &(depth.x), sizeof(float)); //depth.x
+						temp_ptr += sizeof(float);
 
-						memcpy(temp_ptr, &(depth.y), sizeof(double)); //depth.y
-						temp_ptr += sizeof(double);
+						memcpy(temp_ptr, &(depth.y), sizeof(float)); //depth.y
+						temp_ptr += sizeof(float);
 
-						memcpy(temp_ptr, &(depth.z), sizeof(double)); //depth.z
-						temp_ptr += sizeof(double);
+						memcpy(temp_ptr, &(depth.z), sizeof(float)); //depth.z
+						temp_ptr += sizeof(float);
 					}
 
 					visualWordsKpts.push_back(kpt);
@@ -3301,6 +3301,7 @@ void DBDriverSqlite3::loadSignaturesQuery(const std::list<int> & ids, std::list<
 			std::ifstream *infile;
 			infile = new std::ifstream();
 			infile->open("/home/jseng/herbie_rtabmap/build/signatures.dat", std::ios::in | std::ios::binary);
+			float arr[100];
 
 			for (std::list<Signature *>::const_iterator iter = nodes.begin(); iter != nodes.end(); ++iter)
 			{
@@ -3318,62 +3319,36 @@ void DBDriverSqlite3::loadSignaturesQuery(const std::list<int> & ids, std::list<
 				int total_rows;
 
 				infile->read(reinterpret_cast<char *>(&total_rows), sizeof(int)); //number of rows for this signature
-				unsigned char arr[100];
 				int *ptr_int;
-				double *ptr_double;
+				float *ptr_float;
+				char *ptr_char;
+				char has_descriptor;
 
 				for (int i=0; i<total_rows; i++)
 				{
-					infile->read(reinterpret_cast<char *>(&visualWordId), sizeof(int));      //visualWordId
-					infile->read(reinterpret_cast<char *>(&(kpt.pt.x)), sizeof(double));     //kpt.pt.x
-					infile->read(reinterpret_cast<char *>(&(kpt.pt.y)), sizeof(double));     //kpt.pt.y
-					infile->read(reinterpret_cast<char *>(&(kpt.size)), sizeof(int));        //kpt.size
-					infile->read(reinterpret_cast<char *>(&(kpt.angle)), sizeof(double));    //kpt.angle
-					infile->read(reinterpret_cast<char *>(&(kpt.response)), sizeof(double)); //kpt.response
-					infile->read(reinterpret_cast<char *>(&(kpt.octave)), sizeof(int));      //kpt.octave
-					infile->read(reinterpret_cast<char *>(&(depth.x)), sizeof(double));      //depth.x
-					infile->read(reinterpret_cast<char *>(&(depth.y)), sizeof(double));      //depth.y
-					infile->read(reinterpret_cast<char *>(&(depth.z)), sizeof(double));      //depth.z
-
 					//////////////////////////////////////////////////////////
 					//Optimized version
-					// infile->read(reinterpret_cast<char *>(arr), sizeof(double)*7 + sizeof(int)*3);      //depth.z
-					// ptr_int = (int*) arr;
+					infile->read(reinterpret_cast<char *>(arr), sizeof(float)*10 + sizeof(char)); //load keypoint info
+					ptr_int = reinterpret_cast<int*> (&arr[0]);
 
-					// visualWordId = *ptr_int;
-					// ptr_int++;
+					visualWordId = *ptr_int;
 
-					// ptr_double = (double*) ptr_int;
-					// kpt.pt.x = *ptr_double;
-					// ptr_double++;
+					kpt.pt.x = arr[1];
+					kpt.pt.y = arr[2];
+					kpt.size = arr[3];
+					kpt.angle = arr[4];
+					kpt.response = arr[5];
 
-					// kpt.pt.y = *ptr_double;
-					// ptr_double++;
-					// ptr_int = (int*) ptr_double;
+					ptr_int = reinterpret_cast<int*> (&arr[6]);
+					kpt.octave = *ptr_int;
 
-					// kpt.size = *ptr_int;
-					// ptr_int++;
-					// ptr_double = (double*) ptr_int;
+					depth.x = arr[7];
+					depth.y = arr[8];
+					depth.z = arr[9];
 
-					// kpt.angle = *ptr_double;
-					// ptr_double++;
-
-					// kpt.response = *ptr_double;
-					// ptr_double++;
-					// ptr_int = (int*) ptr_double;
-
-					// kpt.octave = *ptr_int;
-					// ptr_int++;
-					// ptr_double = (double*) ptr_int;
-
-					// depth.x = *ptr_double;
-					// ptr_double++;
-
-					// depth.y = *ptr_double;
-					// ptr_double++;
-
-					// depth.z = *ptr_double;
-					// ptr_double++;
+					//load the descriptor
+					ptr_char = reinterpret_cast<char*> (&arr[10]);
+					has_descriptor = *ptr_char;
 
 					visualWordsKpts.push_back(kpt);
 					visualWords.insert(visualWords.end(), std::make_pair(visualWordId, visualWordsKpts.size() - 1));
@@ -3384,11 +3359,7 @@ void DBDriverSqlite3::loadSignaturesQuery(const std::list<int> & ids, std::list<
 						allWords3NaN = false;
 					}
 
-					//load the descriptor
-					char has_descriptor;
-					infile->read(reinterpret_cast<char *>(&has_descriptor), sizeof(char)); //if non-zero, then there is a following descriptor
-
-					if (has_descriptor != 0)
+					if (has_descriptor == 1)
 					{
 						infile->read(reinterpret_cast<char *>(&descriptorSize), sizeof(int)); //descriptorSize
 						infile->read(reinterpret_cast<char *>(&dRealSize), sizeof(int));	  //dRealSize
@@ -3444,7 +3415,7 @@ void DBDriverSqlite3::loadSignaturesQuery(const std::list<int> & ids, std::list<
 		}
 
 		auto t3 = std::chrono::high_resolution_clock::now();
-		std::chrono::duration<double, std::milli> fp_ms1 = t3 - t1;
+		std::chrono::duration<double, std::milli> fp_ms1 = t3 - t2;
 		std::cout << "load signature 2 time in milliseconds: " << fp_ms1.count() << std::endl;
 
 		// Finalize (delete) the statement

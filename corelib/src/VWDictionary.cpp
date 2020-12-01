@@ -1714,6 +1714,10 @@ void VWDictionary::load_vwdictionary() {
 		v->load_visualword(infile);
 		_visualWords.insert(std::pair<int,VisualWord*>(id,v));
 	}
+
+	auto t2 = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double, std::milli> fp_ms = t2 - t1;
+	std::cout << "vwdictionary load time 1 in milliseconds: " << fp_ms.count() << std::endl;
 	
 	infile->read(reinterpret_cast<char *> (&_incrementalDictionary),sizeof(bool)); //_incrementalDictionary
 	// std::cout << "restored _incrementalDictionary factor: " << _incrementalDictionary << std::endl;
@@ -1847,9 +1851,9 @@ void VWDictionary::load_vwdictionary() {
 
 	_dataTree = cv::Mat();
 
-	auto t2 = std::chrono::high_resolution_clock::now();
-    std::chrono::duration<double, std::milli> fp_ms = t2 - t1;
-	std::cout << "vwdictionary load time in milliseconds: " << fp_ms.count() << std::endl;
+	auto t3 = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double, std::milli> fp_ms2 = t3 - t2;
+	std::cout << "vwdictionary load time 2 in milliseconds: " << fp_ms2.count() << std::endl;
 
 	//load the flann index data
 	_flannIndex = new FlannIndex();
