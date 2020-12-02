@@ -3233,9 +3233,9 @@ void DBDriverSqlite3::loadSignaturesQuery(const std::list<int> & ids, std::list<
 
 							if (_buildCache)
 							{
-								unsigned char has_descriptor = 1;
-								memcpy(temp_ptr, &has_descriptor, sizeof(char));
-								temp_ptr += sizeof(char);
+								unsigned int has_descriptor = 1;
+								memcpy(temp_ptr, &has_descriptor, sizeof(int));
+								temp_ptr += sizeof(int);
 
 								// memcpy(temp_ptr, &descriptorSize, sizeof(int));  //save descriptorSize
 								// temp_ptr += sizeof(int);
@@ -3251,12 +3251,15 @@ void DBDriverSqlite3::loadSignaturesQuery(const std::list<int> & ids, std::list<
 						}
 						else
 						{
+							std::cout << "error" << std::endl;
+							exit(0);
+
 							//does not have a descriptor
 							if (_buildCache)
 							{
-								unsigned char has_descriptor = 0;
-								memcpy(temp_ptr, &has_descriptor, sizeof(char));
-								temp_ptr += sizeof(char);
+								unsigned int has_descriptor = 0;
+								memcpy(temp_ptr, &has_descriptor, sizeof(int));
+								temp_ptr += sizeof(int);
 							}
 						}
 						
@@ -3302,6 +3305,7 @@ void DBDriverSqlite3::loadSignaturesQuery(const std::list<int> & ids, std::list<
 			infile = new std::ifstream();
 			infile->open("/home/jseng/herbie_rtabmap/build/signatures.dat", std::ios::in | std::ios::binary);
 			float arr[100];
+			char *temp_buf = (char*) malloc(300000);
 
 			for (std::list<Signature *>::const_iterator iter = nodes.begin(); iter != nodes.end(); ++iter)
 			{
@@ -3321,33 +3325,36 @@ void DBDriverSqlite3::loadSignaturesQuery(const std::list<int> & ids, std::list<
 				infile->read(reinterpret_cast<char *>(&total_rows), sizeof(int)); //number of rows for this signature
 				int *ptr_int;
 				char *ptr_char;
-				char has_descriptor;
+				float *ptr_float;
+				int has_descriptor;
+				int byte_counter = 0;
 
+				infile->read(reinterpret_cast<char *>(temp_buf), total_rows * (sizeof(float) * 10 + sizeof(int) + 32)); //load keypoint info
 				for (int i=0; i<total_rows; i++)
 				{
 					//////////////////////////////////////////////////////////
 					//Optimized version
-					infile->read(reinterpret_cast<char *>(arr), sizeof(float)*10 + sizeof(char)); //load keypoint info
-					ptr_int = reinterpret_cast<int*> (&arr[0]);
+					ptr_int = reinterpret_cast<int*> (&temp_buf[byte_counter]); //set ptr_int to point to the start of keypoint info
 
 					visualWordId = *ptr_int;
+					ptr_float = (float*) ptr_int;
 
-					kpt.pt.x = arr[1];
-					kpt.pt.y = arr[2];
-					kpt.size = arr[3];
-					kpt.angle = arr[4];
-					kpt.response = arr[5];
+					kpt.pt.x = ptr_float[1];
+					kpt.pt.y = ptr_float[2];
+					kpt.size = ptr_float[3];
+					kpt.angle = ptr_float[4];
+					kpt.response = ptr_float[5];
 
-					ptr_int = reinterpret_cast<int*> (&arr[6]);
-					kpt.octave = *ptr_int;
+					kpt.octave = ptr_int[6];
 
-					depth.x = arr[7];
-					depth.y = arr[8];
-					depth.z = arr[9];
+					depth.x = ptr_float[7];
+					depth.y = ptr_float[8];
+					depth.z = ptr_float[9];
 
 					//load the descriptor
-					ptr_char = reinterpret_cast<char*> (&arr[10]);
-					has_descriptor = *ptr_char;
+					has_descriptor = ptr_int[10];
+					ptr_char = (char*) ptr_int;
+					ptr_char += sizeof(float) * 10 + sizeof(int);
 
 					visualWordsKpts.push_back(kpt);
 					visualWords.insert(visualWords.end(), std::make_pair(visualWordId, visualWordsKpts.size() - 1));
@@ -3358,36 +3365,32 @@ void DBDriverSqlite3::loadSignaturesQuery(const std::list<int> & ids, std::list<
 						allWords3NaN = false;
 					}
 
-					if (has_descriptor == 1)
+					// infile->read(reinterpret_cast<char *>(&descriptorSize), sizeof(int)); //descriptorSize
+					// infile->read(reinterpret_cast<char *>(&dRealSize), sizeof(int));	  //dRealSize
+					descriptorSize = 32; //32 byte descriptor size for ORB features
+					dRealSize = 32;
+
+					cv::Mat d;
+					if (dRealSize == descriptorSize)
 					{
-						// infile->read(reinterpret_cast<char *>(&descriptorSize), sizeof(int)); //descriptorSize
-						// infile->read(reinterpret_cast<char *>(&dRealSize), sizeof(int));	  //dRealSize
-						descriptorSize = 32; //32 byte descriptor size for ORB features
-						dRealSize = 32;
-
-						if (descriptorSize > 0 && dRealSize > 0)
-						{
-							cv::Mat d;
-							// if (dRealSize == descriptorSize)
-							if (dRealSize == descriptorSize)
-							{
-								// CV_8U binary descriptors
-								d = cv::Mat(1, descriptorSize, CV_8U);
-							}
-							else if (dRealSize / int(sizeof(float)) == descriptorSize)
-							{
-								// CV_32F
-								d = cv::Mat(1, descriptorSize, CV_32F);
-							}
-							else
-							{
-								UFATAL("Saved buffer size (%d bytes) is not the same as descriptor size (%d)", dRealSize, descriptorSize);
-							}
-
-							infile->read(reinterpret_cast<char *>(d.data), dRealSize); //read in the descriptor data
-							descriptors.push_back(d);
-						}
+						// CV_8U binary descriptors
+						d = cv::Mat(1, descriptorSize, CV_8U, (void*) ptr_char);
 					}
+					else if (dRealSize / int(sizeof(float)) == descriptorSize)
+					{
+						// CV_32F
+						d = cv::Mat(1, descriptorSize, CV_32F);
+					}
+					else
+					{
+						UFATAL("Saved buffer size (%d bytes) is not the same as descriptor size (%d)", dRealSize, descriptorSize);
+					}
+
+					//memcpy(d.data, ptr_char, dRealSize);
+					// infile->read(reinterpret_cast<char *>(d.data), dRealSize); //read in the descriptor data
+					descriptors.push_back(d);
+
+					byte_counter += sizeof(float) * 10 + sizeof(int) + 32;
 				}
 				//std::cout << total_rows << std::endl;
 
@@ -3407,6 +3410,7 @@ void DBDriverSqlite3::loadSignaturesQuery(const std::list<int> & ids, std::list<
 
 			}
 
+			free(temp_buf);
 			infile->close();
 		}
 
