@@ -3237,11 +3237,11 @@ void DBDriverSqlite3::loadSignaturesQuery(const std::list<int> & ids, std::list<
 								memcpy(temp_ptr, &has_descriptor, sizeof(char));
 								temp_ptr += sizeof(char);
 
-								memcpy(temp_ptr, &descriptorSize, sizeof(int));
-								temp_ptr += sizeof(int);
+								// memcpy(temp_ptr, &descriptorSize, sizeof(int));  //save descriptorSize
+								// temp_ptr += sizeof(int);
 
-								memcpy(temp_ptr, &dRealSize, sizeof(int));
-								temp_ptr += sizeof(int);
+								// memcpy(temp_ptr, &dRealSize, sizeof(int));  //save dRealSize
+								// temp_ptr += sizeof(int);
 
 								memcpy(temp_ptr, descriptor, dRealSize);
 								temp_ptr += dRealSize;
@@ -3320,7 +3320,6 @@ void DBDriverSqlite3::loadSignaturesQuery(const std::list<int> & ids, std::list<
 
 				infile->read(reinterpret_cast<char *>(&total_rows), sizeof(int)); //number of rows for this signature
 				int *ptr_int;
-				float *ptr_float;
 				char *ptr_char;
 				char has_descriptor;
 
@@ -3361,8 +3360,10 @@ void DBDriverSqlite3::loadSignaturesQuery(const std::list<int> & ids, std::list<
 
 					if (has_descriptor == 1)
 					{
-						infile->read(reinterpret_cast<char *>(&descriptorSize), sizeof(int)); //descriptorSize
-						infile->read(reinterpret_cast<char *>(&dRealSize), sizeof(int));	  //dRealSize
+						// infile->read(reinterpret_cast<char *>(&descriptorSize), sizeof(int)); //descriptorSize
+						// infile->read(reinterpret_cast<char *>(&dRealSize), sizeof(int));	  //dRealSize
+						descriptorSize = 32; //32 byte descriptor size for ORB features
+						dRealSize = 32;
 
 						if (descriptorSize > 0 && dRealSize > 0)
 						{
@@ -3388,6 +3389,7 @@ void DBDriverSqlite3::loadSignaturesQuery(const std::list<int> & ids, std::list<
 						}
 					}
 				}
+				//std::cout << total_rows << std::endl;
 
 				if (visualWords.size() == 0)
 				{

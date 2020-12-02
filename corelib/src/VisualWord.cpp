@@ -125,6 +125,7 @@ void VisualWord::load_visualword(std::ifstream *infile) {
 
 	int _references_size;
 	infile->read(reinterpret_cast<char *> (&_references_size),sizeof(int)); //_references size
+	//std::cout << "ref size: " << _references_size << std::endl;
 	for (int i=0; i<_references_size; i++)
 	{
 		infile->read(reinterpret_cast<char*> (&a),sizeof(int));
@@ -133,6 +134,7 @@ void VisualWord::load_visualword(std::ifstream *infile) {
 	}
 
 	int _oldReferences_size;
+	//std::cout << "old ref size: " << _oldReferences_size << std::endl;
 	infile->read(reinterpret_cast<char *> (&_oldReferences_size),sizeof(int)); //_oldReferences size
 	for (int i=0; i<_oldReferences_size; i++)
 	{
