@@ -101,7 +101,7 @@ void FlannIndex::save_index()
 
 	std::ofstream *outfile;
 	outfile = new std::ofstream();
-	outfile->open("flann.dat", std::ios::out | std::ios::binary | std::ios::trunc);
+	outfile->open("/home/jseng/flann.dat", std::ios::out | std::ios::binary | std::ios::trunc);
 	((rtflann::Index<rtflann::L1<float>> *)index_)->save_index(outfile);
 
 	//unsigned int nextIndex_;
@@ -137,7 +137,7 @@ void FlannIndex::load_index()
 	auto t1 = std::chrono::high_resolution_clock::now();
 	std::ifstream *infile;
 	infile = new std::ifstream();
-	infile->open("/home/jseng/herbie_rtabmap/build/flann.dat", std::ios::in | std::ios::binary);
+	infile->open("/home/jseng/flann.dat", std::ios::in | std::ios::binary);
 
 	//Call mmap() to have the memory block allocated at the same starting address.
 	char *addr;

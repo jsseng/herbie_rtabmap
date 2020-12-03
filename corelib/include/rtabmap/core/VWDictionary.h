@@ -35,6 +35,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <list>
 #include <set>
 #include "rtabmap/core/Parameters.h"
+// #include "rtabmap/core/Allocator.h"
+
+// const std::size_t growSize = 1024;
+// typedef int DataType;
+// typedef Moya::Allocator<DataType, growSize> MemoryPoolAllocator;
 
 namespace rtabmap
 {
@@ -150,6 +155,7 @@ private:
 	FlannIndex * _flannIndex;
 	cv::Mat _dataTree;
 	NNStrategy _strategy;
+	// std::map<int ,int, std::less<DataType>, MemoryPoolAllocator> _mapIndexId;
 	std::map<int ,int> _mapIndexId;
 	std::map<int ,int> _mapIdIndex;
 	std::map<int, VisualWord*> _unusedWords; //<id,VisualWord*>, note that these words stay in _visualWords

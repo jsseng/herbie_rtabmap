@@ -2843,7 +2843,7 @@ void DBDriverSqlite3::loadSignaturesQuery(const std::list<int> & ids, std::list<
 
 	if (_buildCache) {
 		outfile = new std::ofstream();
-		outfile->open("signatures.dat", std::ios::out | std::ios::binary | std::ios::trunc);
+		outfile->open("/home/jseng/signatures.dat", std::ios::out | std::ios::binary | std::ios::trunc);
 	}
 
 	if(_ppDb && ids.size())
@@ -3303,7 +3303,7 @@ void DBDriverSqlite3::loadSignaturesQuery(const std::list<int> & ids, std::list<
 			//use the cache
 			std::ifstream *infile;
 			infile = new std::ifstream();
-			infile->open("/home/jseng/herbie_rtabmap/build/signatures.dat", std::ios::in | std::ios::binary);
+			infile->open("/home/jseng/signatures.dat", std::ios::in | std::ios::binary);
 			float arr[100];
 			char *temp_buf = (char*) malloc(300000);
 

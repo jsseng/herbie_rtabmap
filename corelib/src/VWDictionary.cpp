@@ -961,6 +961,7 @@ std::list<int> VWDictionary::addNewWords(
 					index = *((size_t*)&results.at<int>(i, j));
 				}
 				int id = uValue(_mapIndexId, index);
+				// int id = _mapIndexId[index];
 				if(d >= 0.0f && id != 0)
 				{
 					fullResults.insert(std::pair<float, int>(d, id));
@@ -977,6 +978,7 @@ std::list<int> VWDictionary::addNewWords(
 			{
 				float d = matches.at(i).at(j).distance;
 				int id = uValue(_mapIndexId, matches.at(i).at(j).trainIdx);
+				// int id = _mapIndexId[matches.at(i).at(j).trainIdx];
 				if(d >= 0.0f && id != 0)
 				{
 					if(isL2NotSqr)
@@ -1328,6 +1330,7 @@ std::vector<int> VWDictionary::findNN(const cv::Mat & queryIn) const
 						index = *((size_t*)&results.at<int>(i, j));
 					}
 					int id = uValue(_mapIndexId, index);
+					// int id = _mapIndexId.at(index);
 					if(d >= 0.0f && id != 0)
 					{
 						fullResults.insert(std::pair<float, int>(d, id));
@@ -1340,6 +1343,7 @@ std::vector<int> VWDictionary::findNN(const cv::Mat & queryIn) const
 				{
 					float d = matches.at(i).at(j).distance;
 					int id = uValue(_mapIndexId, matches.at(i).at(j).trainIdx);
+					// int id = _mapIndexId.at(matches.at(i).at(j).trainIdx);
 					if(d >= 0.0f && id != 0)
 					{
 						if(isL2NotSqr)
@@ -1580,7 +1584,7 @@ void VWDictionary::save_vwdictionary()
 	std::ofstream* outfile;
 	std::ifstream infile;
 	outfile = new std::ofstream();
-	outfile->open("vwdictionary.dat", std::ios::out | std::ios::binary | std::ios::trunc );
+	outfile->open("/home/jseng/vwdictionary.dat", std::ios::out | std::ios::binary | std::ios::trunc );
 
 	int visualword_num = _visualWords.size();
 	outfile->write(reinterpret_cast<char *>(&visualword_num), sizeof(int));
@@ -1697,7 +1701,7 @@ void VWDictionary::load_vwdictionary() {
 	auto t1 = std::chrono::high_resolution_clock::now();
 	std::ifstream* infile;
 	infile = new std::ifstream();
-	infile->open("/home/jseng/herbie_rtabmap/build/vwdictionary.dat", std::ios::in | std::ios::binary);
+	infile->open("/home/jseng/vwdictionary.dat", std::ios::in | std::ios::binary);
 
 	_visualWords.clear();
 	int visualword_size;
@@ -1776,7 +1780,7 @@ void VWDictionary::load_vwdictionary() {
 		mem_ptr_temp += 2;
 		mem_ptr_temp2 += 2;
 	}
-	free(mem_ptr);
+	// free(mem_ptr);
 
 	// for(int i=0; i<mapIndexId_size; i++)
 	// {
@@ -1789,11 +1793,12 @@ void VWDictionary::load_vwdictionary() {
 	_mapIdIndex.clear();
 	int mapIdIndex_size;
 	infile->read(reinterpret_cast<char *>(&mapIdIndex_size), sizeof(int));
-	mem_ptr = (int*) malloc(mapIdIndex_size * sizeof(int) * 2);
+	// mem_ptr = (int*) malloc(mapIdIndex_size * sizeof(int) * 2);
 	mem_ptr_temp = mem_ptr;
 	mem_ptr_temp2 = mem_ptr + 1;
 	infile->read(reinterpret_cast<char *>(mem_ptr), mapIdIndex_size * sizeof(int) * 2);
 	// std::cout << "mapidindex size: " << mapIdIndex_size << std::endl;
+	// std::cout << "mapIndexId size: " << mapIndexId_size << std::endl;
 
 	for(int i=0; i<mapIdIndex_size; i++)
 	{
