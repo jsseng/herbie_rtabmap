@@ -643,6 +643,13 @@ void Memory::parseParameters(const ParametersMap & parameters)
 	Parameters::parse(params, Parameters::kMarkerVarianceAngular(), _markerAngVariance);
 	Parameters::parse(params, Parameters::kMemLocalizationDataSaved(), _localizationDataSaved);
 
+        if (_useCache == false) {
+           Parameters::parse(params, Parameters::kRtabmapUseCache(), _useCache);
+        }
+        if (_buildCache == false) {
+           Parameters::parse(params, Parameters::kRtabmapBuildCache(), _buildCache);
+        }
+
 	UASSERT_MSG(_maxStMemSize >= 0, uFormat("value=%d", _maxStMemSize).c_str());
 	UASSERT_MSG(_similarityThreshold >= 0.0f && _similarityThreshold <= 1.0f, uFormat("value=%f", _similarityThreshold).c_str());
 	UASSERT_MSG(_recentWmRatio >= 0.0f && _recentWmRatio <= 1.0f, uFormat("value=%f", _recentWmRatio).c_str());

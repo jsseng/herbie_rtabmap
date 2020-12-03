@@ -342,6 +342,7 @@ bool VWDictionary::setNNStrategy(NNStrategy strategy)
 		_dataTree = cv::Mat();
 		_notIndexedWords = uKeysSet(_visualWords);
 		_removedIndexedWords.clear();
+                std::cout << "---------Calling update 1--------------------" << std::endl;
 		this->update();
 		return true;
 	}

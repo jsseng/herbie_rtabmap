@@ -1177,8 +1177,7 @@ private:
         }
     }
 
-    //#define STARTING_ADDR 0x6ffebb6f6000
-       #define STARTING_ADDR 0x600000000000
+    #define STARTING_ADDR 0x5000000000
 
     virtual void save_index(std::ofstream *outfile) 
     {
@@ -1203,12 +1202,12 @@ private:
         addr = (char *)mmap((void *)starting_addr, length, PROT_READ | PROT_WRITE, MAP_FIXED | MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
         if (addr == MAP_FAILED)
         {
-            std::cout << "Error obtaining memory" << std::endl;
+            std::cout << "Error with mmap() call" << std::endl;
             exit(EXIT_FAILURE);
         } 
         else 
         {
-            std::cout << "Successful memory mapping to: " << (unsigned long long) addr << std::endl;
+            std::cout << "Successful memory mapping to: 0x" << std::hex << (unsigned long long) addr << std::endl;
         }
 
         //Copy the visual word data to the new memory.  Each visual word is a binary descriptor which consists of

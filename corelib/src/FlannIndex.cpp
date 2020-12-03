@@ -141,17 +141,17 @@ void FlannIndex::load_index()
 
 	//Call mmap() to have the memory block allocated at the same starting address.
 	char *addr;
-	unsigned long long int starting_addr = 0x600000000000;
+	unsigned long long int starting_addr = 0x5000000000;
 	unsigned int length = 1300000000;
 	addr = (char *)mmap((void *)starting_addr, length, PROT_READ | PROT_WRITE, MAP_FIXED | MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
 	if (addr == MAP_FAILED)
 	{
-		std::cout << "Error" << std::endl;
+		std::cout << "Error with mmap() call" << std::endl;
 		exit(EXIT_FAILURE);
 	}
 	else
 	{
-		std::cout << "Successful mapping to: " << (unsigned long long)addr << std::endl;
+		std::cout << "Successful mapping to: 0x" << std::hex << (unsigned long long)addr << std::endl;
 		madvise(addr, length, MADV_SEQUENTIAL); //mmap hint for sequential page accesses
 	}
 
