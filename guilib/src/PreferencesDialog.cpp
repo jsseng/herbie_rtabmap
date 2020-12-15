@@ -881,6 +881,8 @@ PreferencesDialog::PreferencesDialog(QWidget * parent) :
 	_ui->comboBox_dbJournalMode->setObjectName(Parameters::kDbSqlite3JournalMode().c_str());
 	_ui->comboBox_dbSynchronous->setObjectName(Parameters::kDbSqlite3Synchronous().c_str());
 	_ui->comboBox_dbTempStore->setObjectName(Parameters::kDbSqlite3TempStore().c_str());
+	_ui->lineEdit_targetDatabaseVersion->setObjectName(Parameters::kDbTargetVersion().c_str());
+
 
 	// Create hypotheses
 	_ui->general_doubleSpinBox_hardThr->setObjectName(Parameters::kRtabmapLoopThr().c_str());
@@ -1426,7 +1428,7 @@ PreferencesDialog::~PreferencesDialog() {
 	delete _ui;
 }
 
-void PreferencesDialog::init()
+void PreferencesDialog::init(const QString & iniFilePath)
 {
 	UDEBUG("");
 	//First set all default values
@@ -1436,7 +1438,7 @@ void PreferencesDialog::init()
 		this->setParameter(iter->first, iter->second);
 	}
 
-	this->readSettings();
+	this->readSettings(iniFilePath);
 	this->writeSettings(getTmpIniFilePath());
 
 	_initialized = true;
